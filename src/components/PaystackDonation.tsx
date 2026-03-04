@@ -43,9 +43,22 @@ const PaystackDonation = ({
 
   const handleDonate = () => {
     if (!publicKey) {
+      const host = typeof window !== "undefined" ? window.location.host : "";
+      const isVercel = host.includes("vercel.app") || host.includes("ncaa.org.ss");
+
+      console.warn(
+        "Paystack public key missing. Expected import.meta.env.VITE_PAYSTACK_PUBLIC_KEY to be defined at build time.",
+        {
+          host,
+          isVercel,
+          hasKey: false,
+        }
+      );
+
       toast({
         title: "Paystack not configured",
-        description: "Missing VITE_PAYSTACK_PUBLIC_KEY.",
+        description:
+          "Missing VITE_PAYSTACK_PUBLIC_KEY. If deployed on Vercel, ensure the variable is set for Production and redeploy (clear build cache).",
         variant: "destructive",
       });
       return;

@@ -1,5 +1,3 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node";
-
 type InitBody = {
   amount: number;
   email: string;
@@ -8,7 +6,17 @@ type InitBody = {
   currency?: string;
 };
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+type ReqLike = {
+  method?: string;
+  body?: any;
+};
+
+type ResLike = {
+  status: (code: number) => ResLike;
+  json: (payload: any) => void;
+};
+
+export default async function handler(req: ReqLike, res: ResLike) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;

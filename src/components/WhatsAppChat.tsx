@@ -1,45 +1,12 @@
-import { useState, useEffect, useRef } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useState, useEffect, useRef, KeyboardEvent } from "react";
+import { useLocation } from "react-router-dom";
 
 // ─── Configuration ────────────────────────────────────────────────────────────
-const WHATSAPP_PHONE = "211910111997"; // E.164: +211 91 011 1997 (no "+" for wa.me)
+const WHATSAPP_PHONE = "211920287970"; // E.164: +211 920 287 970 (no "+" for wa.me)
 const buildWhatsAppUrl = (message: string) =>
   `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
 
-const QUICK_REPLIES = [
-  {
-    id: "membership",
-    label: "Membership Inquiry",
-    message: "Hello NCA, I would like to know how to become a member.",
-  },
-  {
-    id: "elections",
-    label: "Elections Information",
-    message: "Hello NCA, I would like information about upcoming elections.",
-  },
-  {
-    id: "events",
-    label: "Events Information",
-    message: "Hello NCA, I would like information about upcoming events.",
-  },
-  {
-    id: "general",
-    label: "General Inquiry",
-    message: "Hello NCA, I have a general question.",
-  },
-] as const;
-
-// On-site info links – get information without leaving the site
-const SITE_INFO_LINKS = [
-  { to: "/membership", label: "Membership" },
-  { to: "/events", label: "Events" },
-  { to: "/elections", label: "Elections" },
-  { to: "/scholarship", label: "Scholarship" },
-  { to: "/about", label: "About NCA" },
-  { to: "/contact", label: "Contact" },
-] as const;
-
-// ─── WhatsApp SVG Icon (official brand mark, 2024) ───────────────────────────
+// ─── WhatsApp SVG Icon (official brand mark) ─────────────────────────────────
 const WhatsAppIcon = ({ className }: { className?: string }) => (
   <svg
     className={className}
@@ -53,12 +20,41 @@ const WhatsAppIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+// ─── Send icon ────────────────────────────────────────────────────────────────
+const SendIcon = ({ className }: { className?: string }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <path
+      d="M22 2L11 13"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M22 2L15 22L11 13L2 9L22 2Z"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+);
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const WhatsAppChat = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [message, setMessage] = useState("");
   const location = useLocation();
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isAdminRoute = location.pathname.startsWith("/admin");
 
@@ -67,10 +63,17 @@ export const WhatsAppChat = () => {
     setIsOpen(false);
   }, [location.pathname]);
 
+  // Focus the textarea when the panel opens
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => textareaRef.current?.focus(), 120);
+    }
+  }, [isOpen]);
+
   // Close on Escape key press for accessibility
   useEffect(() => {
     if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handleKeyDown = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") {
         setIsOpen(false);
         buttonRef.current?.focus();
@@ -100,33 +103,44 @@ export const WhatsAppChat = () => {
   // Hide widget on admin routes so it does not interfere with the admin UI
   if (isAdminRoute) return null;
 
-  const handleQuickReply = (message: string) => {
-    window.open(buildWhatsAppUrl(message), "_blank", "noopener,noreferrer");
-    setIsOpen(false);
+  const handleSend = () => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    window.open(buildWhatsAppUrl(trimmed), "_blank", "noopener,noreferrer");
+    setMessage("");
+  };
+
+  // Send on Enter (Shift+Enter inserts a new line)
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
     <>
-      {/* ── Quick-reply panel ── */}
+      {/* ── Chat panel ── */}
       <div
         ref={panelRef}
+        id="whatsapp-chat-panel"
         role="dialog"
         aria-label="Chat with NCA on WhatsApp"
         aria-modal="true"
         aria-hidden={isOpen ? "false" : "true"}
         className={[
           "fixed bottom-24 right-4 sm:right-6 z-50",
-          "w-72 sm:w-80",
+          "w-[22rem] sm:w-96",
           "bg-card rounded-2xl shadow-2xl border border-border",
-          "overflow-hidden",
+          "flex flex-col overflow-hidden",
           "transition-all duration-300 ease-out origin-bottom-right",
           isOpen
             ? "opacity-100 scale-100 pointer-events-auto"
             : "opacity-0 scale-95 pointer-events-none",
         ].join(" ")}
       >
-        {/* Header – brand primary (lavender) */}
-        <div className="flex items-center gap-3 bg-primary px-4 py-3">
+        {/* ── Header ── */}
+        <div className="flex items-center gap-3 bg-primary px-4 py-3 flex-shrink-0">
           <div className="flex-shrink-0 w-9 h-9 rounded-full bg-primary-foreground/15 flex items-center justify-center">
             <WhatsAppIcon className="w-5 h-5 text-primary-foreground" />
           </div>
@@ -134,14 +148,15 @@ export const WhatsAppChat = () => {
             <p className="text-primary-foreground font-semibold text-sm leading-tight">
               NCA Support
             </p>
-            <p className="text-primary-foreground/80 text-xs">
-              Typically replies within minutes
-            </p>
+            <span className="inline-flex items-center gap-1.5 text-primary-foreground/80 text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+              Online · Replies on WhatsApp
+            </span>
           </div>
           <button
             onClick={() => setIsOpen(false)}
-            aria-label="Close WhatsApp chat"
-            className="text-primary-foreground/80 hover:text-primary-foreground transition-colors p-1 rounded-full hover:bg-primary-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
+            aria-label="Close chat"
+            className="text-primary-foreground/70 hover:text-primary-foreground transition-colors p-1.5 rounded-full hover:bg-primary-foreground/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
           >
             <svg
               className="w-4 h-4"
@@ -160,82 +175,100 @@ export const WhatsAppChat = () => {
           </button>
         </div>
 
-        {/* Greeting bubble – muted brand tint */}
-        <div className="px-4 pt-4 pb-2">
-          <div className="inline-block bg-muted rounded-2xl rounded-tl-none px-4 py-3 text-sm text-foreground max-w-[90%]">
-            Hi there! 👋 Get info on the site below, or send us a message on
-            WhatsApp.
-          </div>
-        </div>
-
-        {/* Chat area: on-site info + WhatsApp quick replies */}
-        <div className="px-4 pb-3 flex flex-col gap-3 max-h-[min(60vh,320px)] overflow-y-auto">
-          {/* Get information on the site */}
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Find information on our website
-            </p>
-            <div className="flex flex-wrap gap-1.5">
-              {SITE_INFO_LINKS.map(({ to, label }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={() => setIsOpen(false)}
-                  className="inline-flex items-center px-3 py-1.5 rounded-lg border border-border bg-muted/80 hover:bg-muted text-foreground text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                >
-                  {label}
-                </Link>
-              ))}
+        {/* ── Body: greeting bubble ── */}
+        <div className="flex-1 px-4 py-4 bg-card">
+          {/* NCA greeting bubble */}
+          <div className="flex items-end gap-2">
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center">
+              <WhatsAppIcon className="w-4 h-4 text-primary" />
+            </div>
+            <div className="max-w-[85%]">
+              <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 text-sm text-foreground leading-relaxed">
+                Hi there! 👋 Welcome to <strong>NCA Twic East</strong>. How can
+                we help you today? Type your message below and we'll get back to
+                you on WhatsApp.
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1 ml-1">
+                NCA Support · now
+              </p>
             </div>
           </div>
-
-          {/* WhatsApp quick-reply options */}
-          <div>
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Message us on WhatsApp
-            </p>
-            <ul className="space-y-2" role="list">
-              {QUICK_REPLIES.map(({ id, label, message }) => (
-                <li key={id}>
-                  <button
-                    onClick={() => handleQuickReply(message)}
-                    className="w-full text-left px-4 py-2.5 rounded-xl border border-primary-200 bg-primary-50 hover:bg-primary-100 text-primary-900 text-sm font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  >
-                    {label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
 
-        {/* Footer note */}
-        <p className="text-center text-xs text-muted-foreground pb-3 px-4 border-t border-border pt-2">
-          WhatsApp options open in a new tab
-        </p>
+        {/* ── Footer: message input ── */}
+        <div className="flex-shrink-0 border-t border-border bg-background px-3 py-3">
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={textareaRef}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message…"
+              rows={1}
+              maxLength={1000}
+              aria-label="Type your message"
+              className={[
+                "flex-1 resize-none rounded-xl border border-border bg-muted/50",
+                "px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground",
+                "min-h-[40px] max-h-28 leading-relaxed",
+                "focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent",
+                "transition-all duration-150 scrollbar-thin",
+              ].join(" ")}
+              style={{
+                // Auto-grow the textarea up to max-h
+                height: "auto",
+                overflowY: message.split("\n").length > 3 ? "auto" : "hidden",
+              }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, 112)}px`;
+              }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!message.trim()}
+              aria-label="Send message on WhatsApp"
+              className={[
+                "flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center",
+                "bg-primary text-primary-foreground",
+                "transition-all duration-200",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                message.trim()
+                  ? "opacity-100 hover:bg-primary-600 active:scale-95 cursor-pointer"
+                  : "opacity-40 cursor-not-allowed",
+              ].join(" ")}
+            >
+              <SendIcon className="w-4 h-4 translate-x-px" />
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground text-center mt-2 leading-tight">
+            Pressing Send opens WhatsApp with your message&nbsp;·&nbsp;
+            <kbd className="font-sans not-italic">Shift+Enter</kbd> for new line
+          </p>
+        </div>
       </div>
 
       {/* ── Floating trigger button ── */}
       <div className="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 z-50 group">
-        {/* Tooltip – brand primary-800 for harmony */}
+        {/* Tooltip */}
         <span
           aria-hidden="true"
           className={[
             "absolute right-full mr-3 top-1/2 -translate-y-1/2",
-            "whitespace-nowrap bg-primary-800 text-primary-foreground text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg",
+            "whitespace-nowrap bg-primary-800 text-primary-foreground",
+            "text-xs font-medium px-3 py-1.5 rounded-lg shadow-lg",
             "pointer-events-none select-none",
             "transition-all duration-200",
             "opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0",
-            // Never show tooltip when panel is open – avoids visual clutter
             isOpen ? "!opacity-0" : "",
           ].join(" ")}
         >
           Chat with NCA
-          {/* Arrow */}
           <span className="absolute top-1/2 -translate-y-1/2 right-[-4px] w-0 h-0 border-t-4 border-b-4 border-l-4 border-t-transparent border-b-transparent border-l-primary-800" />
         </span>
 
-        {/* Attention-grabbing ping ring – brand primary, shown only when panel is closed */}
+        {/* Ping ring – shown only when panel is closed */}
         {!isOpen && (
           <span
             aria-hidden="true"
@@ -259,14 +292,22 @@ export const WhatsAppChat = () => {
             "focus:outline-none focus-visible:ring-4 focus-visible:ring-primary focus-visible:ring-offset-2",
           ].join(" ")}
         >
-          {/* Rotate between WhatsApp icon and close icon */}
+          {/* WhatsApp icon → close icon transition */}
           <span
-            className={`absolute transition-all duration-300 ${isOpen ? "opacity-0 rotate-90 scale-50" : "opacity-100 rotate-0 scale-100"}`}
+            className={`absolute transition-all duration-300 ${
+              isOpen
+                ? "opacity-0 rotate-90 scale-50"
+                : "opacity-100 rotate-0 scale-100"
+            }`}
           >
             <WhatsAppIcon className="w-7 h-7 text-primary-foreground" />
           </span>
           <span
-            className={`absolute transition-all duration-300 ${isOpen ? "opacity-100 rotate-0 scale-100" : "opacity-0 -rotate-90 scale-50"}`}
+            className={`absolute transition-all duration-300 ${
+              isOpen
+                ? "opacity-100 rotate-0 scale-100"
+                : "opacity-0 -rotate-90 scale-50"
+            }`}
           >
             <svg
               className="w-6 h-6 text-primary-foreground"

@@ -36,6 +36,12 @@ import abuolImage from "@/images/Abuol.jpeg";
 import abukImage from "@/images/Abuk.jpeg";
 import nyandengImage from "@/images/Nyandeng.jpeg";
 import alekMayulImage from "@/images/Alek.jpeg";
+import aluelImage from "@/images/Aluel.jpeg";
+import alakiirImage from "@/images/Alakiir.jpeg";
+import athieiAbuoiImage from "@/images/A.Abuoi.jpeg";
+import akuchImage from "@/images/Akuch.jpeg";
+import abukManyielImage from "@/images/Abukm.jpeg";
+import atochImage from "@/images/Atoch.jpeg";
 
 export const executiveCommittee: ExecutiveCommitteeMember[] = [
     {
@@ -155,14 +161,18 @@ export const executiveCommittee: ExecutiveCommitteeMember[] = [
 export interface PayamRepresentative {
     name: string;
     payam: string;
+    /** Optional title e.g. Chairlady of Kongor First Class */
+    position?: string;
+    /** Optional profile image (import or URL) */
+    image?: string;
 }
 
 export const payamRepresentatives: PayamRepresentative[] = [
-    { name: "Representative Name", payam: "Ajuong" },
-    { name: "Representative Name", payam: "Kongor" },
-    { name: "Representative Name", payam: "Lith" },
-    { name: "Representative Name", payam: "Nyuak" },
-    { name: "Representative Name", payam: "Pakeer" },
-    { name: "Representative Name", payam: "Pawuoi" }
+    { name: "Abuk Manyiel Deng", payam: "Ajuong", position: "Chairlady of Ajuong Girls", image: abukManyielImage },
+    { name: "Aluel Elizabeth Biar", payam: "Kongor", position: "Chairlady of Kongor First Class", image: aluelImage },
+    { name: "Roda Akuch Riak Atem", payam: "Lith", position: "Chairlady of Lith Girls", image: akuchImage },
+    { name: "Athiei Abuoi Giet", payam: "Nyuak", position: "Chairlady of Nyuak Pride Girls", image: athieiAbuoiImage },
+    { name: "Atoch Atem Juach", payam: "Pakeer", position: "Chairlady of Pakeer Golden Girls", image: atochImage },
+    { name: "Alakiir Tit Diing", payam: "Pawuoi", position: "Chairlady of Pawuoi Princess", image: alakiirImage }
 ];
 

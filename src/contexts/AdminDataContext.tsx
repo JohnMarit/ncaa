@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { upcomingEvents as staticUpcomingEvents, pastEvents as staticPastEvents } from "@/data/events";
+import type { UpcomingEvent, PastEvent } from "@/data/events";
 
 export type MemberStatus = "approved" | "pending" | "rejected";
 export type PaymentStatus = "paid" | "pending" | "failed";
@@ -87,6 +89,10 @@ export interface AdminPayamRepresentative {
   id: string;
   name: string;
   payam: string;
+  /** Optional title e.g. Chairlady of Kongor First Class */
+  position?: string;
+  /** Optional profile image URL */
+  image?: string;
 }
 
 export interface AdminEvent {
@@ -100,6 +106,20 @@ export interface AdminEvent {
   attendees: number;
   status: "active" | "completed";
   image?: string;
+  /** ISO date string; set on create for ordering. */
+  createdAt?: string;
+  /** If true, event is shown on public site. Draft events are admin-only. */
+  published?: boolean;
+}
+
+export interface AdminScholarship {
+  id: string;
+  title: string;
+  description: string;
+  /** URL for the application form or page */
+  applicationLink: string;
+  /** ISO date string; set on create for ordering. */
+  createdAt?: string;
 }
 
 interface AdminDataContextType {
@@ -112,7 +132,9 @@ interface AdminDataContextType {
   executiveCommittee: AdminExecutiveMember[];
   payamRepresentatives: AdminPayamRepresentative[];
   events: AdminEvent[];
+  scholarships: AdminScholarship[];
   addMember: (member: Omit<Member, "id" | "status" | "appliedDate" | "paymentStatus">) => void;
+  updateMember: (id: string, updates: Partial<Omit<Member, "id" | "appliedDate">>) => void;
   approveMember: (id: string) => void;
   rejectMember: (id: string) => void;
   addPayment: (payment: Omit<Payment, "id" | "date" | "status"> & { status?: PaymentStatus }) => void;
@@ -136,6 +158,9 @@ interface AdminDataContextType {
   addEvent: (event: Omit<AdminEvent, "id">) => void;
   updateEvent: (id: string, updates: Partial<AdminEvent>) => void;
   deleteEvent: (id: string) => void;
+  addScholarship: (scholarship: Omit<AdminScholarship, "id">) => void;
+  updateScholarship: (id: string, updates: Partial<AdminScholarship>) => void;
+  deleteScholarship: (id: string) => void;
 }
 
 const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
@@ -150,7 +175,57 @@ const STORAGE_KEYS = {
   executiveCommittee: "nca_admin_executive_committee",
   payamRepresentatives: "nca_admin_payam_representatives",
   events: "nca_admin_events",
+  scholarships: "nca_admin_scholarships",
 };
+
+/** Map of event title -> static image URL so we can apply images to events loaded from localStorage. */
+const staticEventImages: Record<string, string> = {};
+[...staticUpcomingEvents, ...staticPastEvents].forEach((e) => {
+  if (e.image && typeof e.image === "string") staticEventImages[e.title] = e.image;
+});
+
+function seedEventsFromStatic(): AdminEvent[] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const result: AdminEvent[] = [];
+  staticUpcomingEvents.forEach((e: UpcomingEvent) => {
+    const eventDate = new Date(e.date);
+    eventDate.setHours(0, 0, 0, 0);
+    result.push({
+      id: `seed-upcoming-${e.id}`,
+      title: e.title,
+      description: e.description,
+      date: e.date,
+      time: e.time,
+      location: e.location,
+      type: eventDate >= today ? "upcoming" : "past",
+      attendees: e.attendees,
+      status: "active",
+      image: e.image,
+      createdAt: new Date(0).toISOString(),
+      published: true,
+    });
+  });
+  staticPastEvents.forEach((e: PastEvent) => {
+    const eventDate = new Date(e.date);
+    eventDate.setHours(0, 0, 0, 0);
+    result.push({
+      id: `seed-past-${e.id}`,
+      title: e.title,
+      description: e.description ?? "",
+      date: e.date,
+      time: "",
+      location: e.location,
+      type: "past",
+      attendees: e.attendees,
+      status: "completed",
+      image: typeof e.image === "string" ? e.image : undefined,
+      createdAt: new Date(0).toISOString(),
+      published: true,
+    });
+  });
+  return result;
+}
 
 export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [members, setMembers] = useState<Member[]>([]);
@@ -162,6 +237,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [executiveCommittee, setExecutiveCommittee] = useState<AdminExecutiveMember[]>([]);
   const [payamRepresentatives, setPayamRepresentatives] = useState<AdminPayamRepresentative[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
+  const [scholarships, setScholarships] = useState<AdminScholarship[]>([]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -175,6 +251,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       const storedExecutive = localStorage.getItem(STORAGE_KEYS.executiveCommittee);
       const storedPayam = localStorage.getItem(STORAGE_KEYS.payamRepresentatives);
       const storedEvents = localStorage.getItem(STORAGE_KEYS.events);
+      const storedScholarships = localStorage.getItem(STORAGE_KEYS.scholarships);
 
       if (storedMembers) setMembers(JSON.parse(storedMembers));
       if (storedPayments) setPayments(JSON.parse(storedPayments));
@@ -184,7 +261,34 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       if (storedDocuments) setDocuments(JSON.parse(storedDocuments));
       if (storedExecutive) setExecutiveCommittee(JSON.parse(storedExecutive));
       if (storedPayam) setPayamRepresentatives(JSON.parse(storedPayam));
-      if (storedEvents) setEvents(JSON.parse(storedEvents));
+      // Events: use stored list when present and non-empty (so admin deletes persist). Otherwise seed from static so original events show.
+      const seedEvents = seedEventsFromStatic();
+      if (storedEvents) {
+        try {
+          const parsed = JSON.parse(storedEvents) as AdminEvent[];
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const withStaticImages = parsed.map((e) => ({
+              ...e,
+              image: e.image || staticEventImages[e.title] || undefined,
+            }));
+            setEvents(withStaticImages);
+          } else {
+            setEvents(seedEvents);
+          }
+        } catch {
+          setEvents(seedEvents);
+        }
+      } else {
+        setEvents(seedEvents);
+      }
+      if (storedScholarships) {
+        try {
+          const parsed = JSON.parse(storedScholarships) as AdminScholarship[];
+          if (Array.isArray(parsed)) setScholarships(parsed);
+        } catch {
+          // ignore
+        }
+      }
     } catch {
       // Ignore parse errors and start with empty data
     }
@@ -227,6 +331,10 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem(STORAGE_KEYS.events, JSON.stringify(events));
   }, [events]);
 
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.scholarships, JSON.stringify(scholarships));
+  }, [scholarships]);
+
   const addMember: AdminDataContextType["addMember"] = (input) => {
     const now = new Date();
     const newMember: Member = {
@@ -256,6 +364,12 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       link: "/admin/members",
     };
     setNotifications((prev) => [notification, ...prev]);
+  };
+
+  const updateMember = (id: string, updates: Partial<Omit<Member, "id" | "appliedDate">>) => {
+    setMembers((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
+    );
   };
 
   const approveMember = (id: string) => {
@@ -413,6 +527,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       id: crypto.randomUUID(),
       name: input.name,
       payam: input.payam,
+      ...(input.position !== undefined && { position: input.position }),
+      ...(input.image !== undefined && { image: input.image }),
     };
     setPayamRepresentatives((prev) => [rep, ...prev]);
   };
@@ -428,6 +544,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addEvent: AdminDataContextType["addEvent"] = (input) => {
+    const eventDate = new Date(input.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    eventDate.setHours(0, 0, 0, 0);
+    const type: "upcoming" | "past" = eventDate >= today ? "upcoming" : "past";
     const event: AdminEvent = {
       id: crypto.randomUUID(),
       title: input.title,
@@ -435,10 +556,12 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       date: input.date,
       time: input.time,
       location: input.location,
-      type: input.type,
-      attendees: input.attendees || 0,
-      status: input.status,
+      type,
+      attendees: input.attendees ?? 0,
+      status: input.status ?? "active",
       image: input.image,
+      createdAt: new Date().toISOString(),
+      published: input.published ?? true,
     };
     setEvents((prev) => [event, ...prev]);
   };
@@ -453,6 +576,27 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     setEvents((prev) => prev.filter((e) => e.id !== id));
   };
 
+  const addScholarship: AdminDataContextType["addScholarship"] = (input) => {
+    const scholarship: AdminScholarship = {
+      id: crypto.randomUUID(),
+      title: input.title,
+      description: input.description,
+      applicationLink: input.applicationLink,
+      createdAt: new Date().toISOString(),
+    };
+    setScholarships((prev) => [scholarship, ...prev]);
+  };
+
+  const updateScholarship = (id: string, updates: Partial<AdminScholarship>) => {
+    setScholarships((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+  };
+
+  const deleteScholarship = (id: string) => {
+    setScholarships((prev) => prev.filter((s) => s.id !== id));
+  };
+
   return (
     <AdminDataContext.Provider
       value={{
@@ -465,7 +609,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         executiveCommittee,
         payamRepresentatives,
         events,
+        scholarships,
         addMember,
+        updateMember,
         approveMember,
         rejectMember,
         addPayment,
@@ -489,6 +635,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         addEvent,
         updateEvent,
         deleteEvent,
+        addScholarship,
+        updateScholarship,
+        deleteScholarship,
       }}
     >
       {children}

@@ -62,35 +62,8 @@ const Leadership = () => {
                                         <div className="group relative w-full max-w-xs overflow-hidden rounded-xl bg-gradient-to-br from-background to-muted/30 shadow-lg transition-all duration-300 md:max-w-md md:rounded-2xl md:shadow-xl md:hover:shadow-2xl">
                                             {/* Gradient overlay */}
                                             <div className={`absolute inset-0 bg-gradient-to-br ${leadershipGradient} opacity-5 transition-opacity duration-300 group-hover:opacity-10`} />
-                                            
-                                            {/* Square Avatar Image - Mobile */}
-                                            <div className="flex justify-center pt-4 md:hidden">
-                                                {chairperson.image ? (
-                                                    <button
-                                                        onClick={() => setSelectedMember({
-                                                            image: chairperson.image!,
-                                                            name: chairperson.name,
-                                                            position: chairperson.position,
-                                                            description: chairperson.description
-                                                        })}
-                                                        className="relative h-28 w-28 overflow-hidden rounded-lg border-2 border-border shadow-md transition-transform duration-200 hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                                                        aria-label={`View larger image of ${chairperson.name}`}
-                                                    >
-                                                        <img
-                                                            src={chairperson.image}
-                                                            alt={chairperson.name}
-                                                className="h-full w-full object-cover"
-                                                loading="eager"
-                                            />
-                                        </button>
-                                    ) : (
-                                        <div className={`flex h-28 w-28 items-center justify-center rounded-lg bg-gradient-to-br ${leadershipGradient} shadow-md`}>
-                                            <ChairladyIcon className="h-12 w-12 text-white" />
-                                                    </div>
-                                                )}
-                                            </div>
 
-                                            {/* Cover Image - Medium+ Screens */}
+                                            {/* Cover Image - same on all screen sizes */}
                                             {chairperson.image ? (
                                                 <button
                                                     onClick={() => setSelectedMember({
@@ -99,7 +72,7 @@ const Leadership = () => {
                                                         position: chairperson.position,
                                                         description: chairperson.description
                                                     })}
-                                                    className="hidden relative w-full h-64 overflow-hidden rounded-t-2xl bg-muted transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 md:flex items-center justify-center lg:h-72"
+                                                    className="relative w-full h-64 overflow-hidden rounded-t-2xl bg-muted transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center lg:h-72"
                                                     aria-label={`View larger image of ${chairperson.name}`}
                                                 >
                                                     <img
@@ -110,7 +83,7 @@ const Leadership = () => {
                                                     />
                                                 </button>
                                             ) : (
-                                                <div className={`hidden w-full h-64 items-center justify-center bg-gradient-to-br ${leadershipGradient} rounded-t-2xl md:flex lg:h-72`}>
+                                                <div className={`flex w-full h-64 items-center justify-center bg-gradient-to-br ${leadershipGradient} rounded-t-2xl lg:h-72`}>
                                                     <ChairladyIcon className="h-20 w-20 text-white" />
                                                 </div>
                                             )}
@@ -147,33 +120,7 @@ const Leadership = () => {
                                                     {/* Gradient overlay */}
                                                     <div className={`absolute inset-0 bg-gradient-to-br ${leadershipGradient} opacity-0 transition-opacity duration-300 group-hover:opacity-10`} />
 
-                                                    {/* Square Avatar Image - Mobile */}
-                                                    <div className="flex justify-center pt-4 md:hidden">
-                                                        {member.image ? (
-                                                            <button
-                                                                onClick={() => setSelectedMember({
-                                                                    image: member.image!,
-                                                                    name: member.name,
-                                                                    position: member.position,
-                                                                    description: member.description
-                                                                })}
-                                                                className="relative h-24 w-24 overflow-hidden rounded-lg border-2 border-border shadow-md transition-transform duration-200 hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                                                                aria-label={`View larger image of ${member.name}`}
-                                                            >
-                                                                <img
-                                                                    src={member.image}
-                                                                    alt={member.name}
-                                                                    className="h-full w-full object-cover"
-                                                                />
-                                                            </button>
-                                                        ) : (
-                                                            <div className={`flex h-24 w-24 items-center justify-center rounded-lg bg-gradient-to-br ${leadershipGradient} shadow-md`}>
-                                                                <Icon className="h-10 w-10 text-white" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Cover Image - Medium+ Screens */}
+                                                    {/* Cover Image - same on all screen sizes */}
                                                     {member.image ? (
                                                         <button
                                                             onClick={() => setSelectedMember({
@@ -182,7 +129,7 @@ const Leadership = () => {
                                                                 position: member.position,
                                                                 description: member.description
                                                             })}
-                                                            className="hidden relative w-full h-56 overflow-hidden transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 md:block lg:h-64"
+                                                            className="relative w-full h-56 overflow-hidden transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 lg:h-64"
                                                             aria-label={`View larger image of ${member.name}`}
                                                         >
                                                             <img
@@ -192,7 +139,7 @@ const Leadership = () => {
                                                             />
                                                         </button>
                                                     ) : (
-                                                        <div className={`hidden w-full h-56 items-center justify-center bg-gradient-to-br ${leadershipGradient} md:flex lg:h-64`}>
+                                                        <div className={`flex w-full h-56 items-center justify-center bg-gradient-to-br ${leadershipGradient} lg:h-64`}>
                                                             <Icon className="h-12 w-12 text-white" />
                                                         </div>
                                                     )}
@@ -249,11 +196,18 @@ const Leadership = () => {
                                         
                                         <div className="relative">
                                             <div className="mb-4 flex items-center justify-center">
-                                                <div className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br ${leadershipGradient}`}>
-                                                    <MapPin className="h-8 w-8 text-white" />
-                                                </div>
+                                                {rep.image ? (
+                                                    <img
+                                                        src={rep.image}
+                                                        alt={rep.name}
+                                                        className="h-20 w-20 rounded-full object-cover border-2 border-white shadow-md"
+                                                    />
+                                                ) : (
+                                                    <div className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br ${leadershipGradient}`}>
+                                                        <MapPin className="h-8 w-8 text-white" />
+                                                    </div>
+                                                )}
                                             </div>
-                                            
                                             <div className="text-center">
                                                 <h3 className="mb-2 font-heading text-lg font-bold">
                                                     {rep.name}
@@ -261,6 +215,9 @@ const Leadership = () => {
                                                 <p className={`text-sm font-semibold bg-gradient-to-r ${leadershipGradient} bg-clip-text text-transparent`}>
                                                     {rep.payam} Payam
                                                 </p>
+                                                {rep.position && (
+                                                    <p className="mt-1 text-sm text-muted-foreground">{rep.position}</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>

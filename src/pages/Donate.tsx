@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Heart, DollarSign, CreditCard, Shield, CheckCircle, Gift } from "lucide-react";
+import { Heart, CreditCard, Shield, CheckCircle, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import PaystackDonation from "@/components/PaystackDonation";
 
 const Donate = () => {
     const navigate = useNavigate();
@@ -19,9 +20,9 @@ const Donate = () => {
     const [donorName, setDonorName] = useState("");
     const [donorEmail, setDonorEmail] = useState("");
     const [donorPhone, setDonorPhone] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("mobile");
-    const [mobileOperator, setMobileOperator] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("paystack");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [showPaystack, setShowPaystack] = useState(false);
     const { toast } = useToast();
     const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,47 +41,61 @@ const Donate = () => {
             return;
         }
 
-        // Validate mobile operator selection if mobile money is chosen
-        if (paymentMethod === "mobile" && !mobileOperator) {
+        // Validate email
+        if (!donorEmail || !donorEmail.includes("@")) {
             toast({
-                title: "Network Operator Required",
-                description: "Please select your mobile money network operator.",
+                title: "Invalid Email",
+                description: "Please enter a valid email address.",
                 variant: "destructive",
             });
             return;
         }
 
-        // If bank transfer, redirect to payment page
-        if (paymentMethod === "bank") {
-            navigate("/donate/payment", {
-                state: {
-                    amount: donationAmount,
-                    currency: currency,
-                    donorName: donorName,
-                    donorEmail: donorEmail,
-                    donorPhone: donorPhone,
-                },
+        // Validate name
+        if (!donorName.trim()) {
+            toast({
+                title: "Name Required",
+                description: "Please enter your full name.",
+                variant: "destructive",
             });
             return;
         }
 
-        // Process mobile money donation
-        setIsProcessing(true);
-        setTimeout(() => {
-            toast({
-                title: "Thank You for Your Donation!",
-                description: `Your donation of ${donationAmount} ${currency} via ${mobileOperator} has been received. We appreciate your support!`,
-            });
-            setIsProcessing(false);
-            
-            // Reset form
-            setAmount("");
-            setCurrency("USD");
-            setDonorName("");
-            setDonorEmail("");
-            setDonorPhone("");
-            setMobileOperator("");
-        }, 2000);
+        // Handle Paystack payment
+        if (paymentMethod === "paystack") {
+            if (currency === "SSP") {
+                toast({
+                    title: "Currency not supported",
+                    description: "Paystack does not support SSP. Switching to USD for Paystack payment.",
+                });
+                setCurrency("USD");
+            }
+            setShowPaystack(true);
+            return;
+        }
+
+        setShowPaystack(true);
+    };
+
+    const handlePaystackSuccess = (reference: string) => {
+        setShowPaystack(false);
+        // Reset form
+        setAmount("");
+        setCurrency("USD");
+        setDonorName("");
+        setDonorEmail("");
+        setDonorPhone("");
+
+        toast({
+            title: "Donation completed",
+            description: `Reference: ${reference}`,
+        });
+
+        navigate("/");
+    };
+
+    const handlePaystackClose = () => {
+        setShowPaystack(false);
     };
 
     return (
@@ -205,67 +220,62 @@ const Donate = () => {
                                                 <h3 className="font-semibold">Payment Method *</h3>
                                                 <RadioGroup value={paymentMethod} onValueChange={(value) => {
                                                     setPaymentMethod(value);
-                                                    setMobileOperator(""); // Reset operator when changing payment method
+                                                    setShowPaystack(false);
                                                 }}>
                                                     <div className="space-y-3">
                                                         <div className="flex items-center space-x-2 rounded-lg border border-border bg-card p-4">
-                                                            <RadioGroupItem value="mobile" id="mobile" />
-                                                            <Label htmlFor="mobile" className="flex-1 cursor-pointer">
+                                                            <RadioGroupItem value="paystack" id="paystack" />
+                                                            <Label htmlFor="paystack" className="flex-1 cursor-pointer">
                                                                 <div className="flex items-center gap-2">
                                                                     <CreditCard className="h-5 w-5" />
-                                                                    <span className="font-medium">Mobile Money</span>
-                                                                </div>
-                                                            </Label>
-                                                        </div>
-                                                        <div className="flex items-center space-x-2 rounded-lg border border-border bg-card p-4">
-                                                            <RadioGroupItem value="bank" id="bank" />
-                                                            <Label htmlFor="bank" className="flex-1 cursor-pointer">
-                                                                <div className="flex items-center gap-2">
-                                                                    <DollarSign className="h-5 w-5" />
-                                                                    <span className="font-medium">Bank Transfer (Card Payment)</span>
+                                                                    <span className="font-medium">Card</span>
                                                                 </div>
                                                             </Label>
                                                         </div>
                                                     </div>
                                                 </RadioGroup>
 
-                                                {/* Mobile Operator Selection */}
-                                                {paymentMethod === "mobile" && (
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="mobileOperator">Network Operator *</Label>
-                                                        <Select value={mobileOperator} onValueChange={setMobileOperator}>
-                                                            <SelectTrigger id="mobileOperator">
-                                                                <SelectValue placeholder="Select your network operator" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="zain">Zain SS</SelectItem>
-                                                                <SelectItem value="mtn">MTN SS</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
-                                                    </div>
-                                                )}
-
-                                                {/* Bank Transfer Info */}
-                                                {paymentMethod === "bank" && (
+                                                {paymentMethod === "paystack" && (
                                                     <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                                                         <p className="text-sm text-muted-foreground">
-                                                            You will be directed to a secure payment page to enter your card details and complete the transaction.
+                                                            You will be redirected to Paystack&apos;s secure checkout to complete your donation.
                                                         </p>
                                                     </div>
                                                 )}
                                             </div>
 
                                             {/* Submit Button */}
-                                            <Button type="submit" size="lg" className="w-full" disabled={isProcessing}>
-                                                {isProcessing ? (
-                                                    "Processing..."
-                                                ) : (
-                                                    <>
-                                                        <Heart className="mr-2 h-5 w-5" />
-                                                        {paymentMethod === "bank" ? "Proceed to Payment" : "Donate Now"}
-                                                    </>
-                                                )}
-                                            </Button>
+                                            {showPaystack && paymentMethod === "paystack" ? (
+                                                <div className="space-y-3">
+                                                    <PaystackDonation
+                                                        amount={parseFloat(amount.replace(/,/g, ""))}
+                                                        email={donorEmail}
+                                                        name={donorName}
+                                                        phone={donorPhone}
+                                                        onSuccess={handlePaystackSuccess}
+                                                        onClose={handlePaystackClose}
+                                                    />
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className="w-full"
+                                                        onClick={handlePaystackClose}
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <Button type="submit" size="lg" className="w-full" disabled={isProcessing}>
+                                                    {isProcessing ? (
+                                                        "Processing..."
+                                                    ) : (
+                                                        <>
+                                                            <Heart className="mr-2 h-5 w-5" />
+                                                            Continue
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            )}
                                         </form>
                                     </CardContent>
                                 </Card>
@@ -347,7 +357,7 @@ const Donate = () => {
                                             Have questions about donating? Contact us:
                                         </p>
                                         <div className="space-y-2 text-sm">
-                                            <p><strong>Email:</strong> nyancitarialbeek.juba@gmail.com</p>
+                                            <p><strong>Email:</strong> info@ncaa.org.ss</p>
                                             <p><strong>Phone:</strong> +211 920 287 970</p>
                                         </div>
                                     </CardContent>

@@ -204,7 +204,7 @@ const Payments = () => {
                                         finance team at:
                                     </p>
                                     <div className="space-y-1 text-sm">
-                                        <p><strong>Email:</strong> nyancitarialbeek.juba@gmail.com</p>
+                                        <p><strong>Email:</strong> info@ncaa.org.ss</p>
                                         <p><strong>Phone:</strong> +211 920 287 970</p>
                                     </div>
                                 </div>

@@ -1,11 +1,13 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { GraduationCap, BookOpen, Award, Users, Heart, CheckCircle, FileText, Calendar } from "lucide-react";
+import { GraduationCap, BookOpen, Award, Users, Heart, CheckCircle, FileText, Calendar, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { useAdminData } from "@/contexts/AdminDataContext";
 
 const Scholarship = () => {
+    const { scholarships } = useAdminData();
     const scholarshipPrograms = [
         {
             title: "Primary School Scholarship",
@@ -137,6 +139,41 @@ const Scholarship = () => {
                         </div>
                     </div>
                 </section>
+
+                {/* Admin-created scholarship posts */}
+                {scholarships.length > 0 && (
+                    <section className="py-12 md:py-16 bg-muted/30">
+                        <div className="container">
+                            <div className="mx-auto max-w-6xl">
+                                <div className="mb-8 text-center">
+                                    <h2 className="mb-4 font-heading text-3xl font-bold md:text-4xl">
+                                        Current Scholarship Opportunities
+                                    </h2>
+                                    <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+                                        Apply using the link below each opportunity.
+                                    </p>
+                                </div>
+                                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                    {scholarships.map((s) => (
+                                        <Card key={s.id} className="flex flex-col">
+                                            <CardHeader>
+                                                <CardTitle className="text-xl">{s.title}</CardTitle>
+                                                <CardDescription className="line-clamp-3">{s.description}</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="mt-auto pt-0">
+                                                <Button asChild className="w-full sm:w-auto">
+                                                    <a href={s.applicationLink} target="_blank" rel="noopener noreferrer">
+                                                        Apply for this scholarship <ExternalLink className="ml-2 h-4 w-4" />
+                                                    </a>
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                )}
 
                 {/* Scholarship Programs Section */}
                 <section className="py-12 md:py-20">
@@ -345,7 +382,7 @@ const Scholarship = () => {
                                 </Button>
                             </div>
                             <p className="mt-6 text-sm text-muted-foreground">
-                                For inquiries: education@nca-twiceast.org
+                                For inquiries: info@ncaa.org.ss
                             </p>
                             <p className="mt-2 text-sm text-muted-foreground">
                                 Not an NCAA member yet?{" "}

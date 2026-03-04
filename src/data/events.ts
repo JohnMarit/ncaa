@@ -1,7 +1,9 @@
 import annualImage from "@/images/annual.jpg";
+import awardsImage from "@/images/awards.jpg";
 import nca2Image from "@/images/nca2.jpg";
 import ncaReportImage from "@/images/nca-report.jpeg";
 import panyagoorImage from "@/images/nca1.jpg";
+import womenImage from "@/images/Women.png";
 
 export type UpcomingEvent = {
   id: number;
@@ -11,6 +13,7 @@ export type UpcomingEvent = {
   location: string;
   attendees: number;
   description: string;
+  image?: string;
 };
 
 export type PastEvent = {
@@ -41,6 +44,7 @@ export const upcomingEvents: UpcomingEvent[] = [
     location: "NCAA Hall, Juba",
     attendees: 300,
     description: "Annual NCAA Awards ceremony recognizing outstanding members, leaders, and community contributors. Join us for an evening of celebration, entertainment, and appreciation for those who have made significant contributions to our community.",
+    image: awardsImage,
   },
   {
     id: 3,
@@ -59,6 +63,16 @@ export const upcomingEvents: UpcomingEvent[] = [
     location: "Community Center",
     attendees: 200,
     description: "Annual fundraising event to support educational scholarships for members.",
+  },
+  {
+    id: 5,
+    title: "International Women's Day",
+    date: "March 8, 2026",
+    time: "10:00 AM - 4:00 PM",
+    location: "Gold Orchid, Juba",
+    attendees: 150,
+    description: "Join us in celebrating International Women's Day with themes of equality, empowerment, and solidarity. A day of reflection, discussion, and celebration of women's achievements and the path ahead.",
+    image: womenImage,
   },
 ];
 

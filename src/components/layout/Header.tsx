@@ -63,15 +63,9 @@ export function Header() {
             alt="NCAA Logo"
             className="h-10 sm:h-12 w-auto object-contain"
           />
-          {/* Compact text for small screens */}
-          <div className="block sm:hidden">
-            <p className="font-heading text-sm font-bold leading-tight text-foreground whitespace-nowrap">
-              NCAA
-            </p>
-          </div>
-          {/* Full text for larger screens */}
-          <div className="hidden sm:block">
-            <p className="font-heading text-lg font-bold leading-tight text-foreground">
+          {/* Same org name on all screen sizes */}
+          <div>
+            <p className="font-heading text-sm font-bold leading-tight text-foreground sm:text-lg">
               Nyan Cit Arialbeek
             </p>
             <p className="text-xs text-muted-foreground">

@@ -17,7 +17,8 @@ import {
     CheckCircle,
     XCircle,
     MessageSquare,
-    Clock
+    Clock,
+    GraduationCap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,7 @@ const navigation = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { name: "Members", href: "/admin/members", icon: Users },
     { name: "Events", href: "/admin/events", icon: Calendar },
+    { name: "Scholarships", href: "/admin/scholarships", icon: GraduationCap },
     { name: "Elections", href: "/admin/elections", icon: Vote },
     { name: "Leadership", href: "/admin/leadership", icon: Crown },
     { name: "Documents", href: "/admin/documents", icon: FileText },
@@ -217,7 +219,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
                             <div className="text-right">
                                 <p className="text-sm font-medium">Admin User</p>
-                                <p className="text-xs text-muted-foreground">{user?.email || "admin@ncatwiceast.org"}</p>
+                                <p className="text-xs text-muted-foreground">{user?.email || "info@ncaa.org.ss"}</p>
                             </div>
                         </div>
                     </div>

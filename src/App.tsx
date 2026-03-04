@@ -18,6 +18,7 @@ import ScholarshipApplication from "./pages/ScholarshipApplication";
 import Elections from "./pages/Elections";
 import UpcomingEvents from "./pages/UpcomingEvents";
 import PastEvents from "./pages/PastEvents";
+import EventDetail from "./pages/EventDetail";
 import MemberPortal from "./pages/MemberPortal";
 import Payments from "./pages/Payments";
 import Directory from "./pages/Directory";
@@ -27,6 +28,8 @@ import Donate from "./pages/Donate";
 import DonationPayment from "./pages/DonationPayment";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import CreateAccount from "./pages/auth/CreateAccount";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminMembers from "./pages/admin/Members";
 import AdminEvents from "./pages/admin/Events";
@@ -35,6 +38,7 @@ import AdminLeadership from "./pages/admin/Leadership";
 import AdminDocuments from "./pages/admin/Documents";
 import AdminPayments from "./pages/admin/Payments";
 import AdminSettings from "./pages/admin/Settings";
+import AdminScholarships from "./pages/admin/Scholarships";
 import AdminNotifications from "./pages/admin/Notifications";
 import { AdminRoute } from "./components/admin/AdminRoute";
 import NotFound from "./pages/NotFound";
@@ -66,6 +70,7 @@ const App = () => (
           <Route path="/events" element={<Events />} />
           <Route path="/events/upcoming" element={<UpcomingEvents />} />
           <Route path="/events/past" element={<PastEvents />} />
+          <Route path="/events/event/:id" element={<EventDetail />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/portal" element={<MemberPortal />} />
           <Route path="/payments" element={<Payments />} />
@@ -76,10 +81,13 @@ const App = () => (
           <Route path="/donate/payment" element={<DonationPayment />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/create-account" element={<CreateAccount />} />
           {/* Admin Routes - Only accessible through /admin */}
           <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
           <Route path="/admin/members" element={<AdminRoute><AdminMembers /></AdminRoute>} />
           <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
+          <Route path="/admin/scholarships" element={<AdminRoute><AdminScholarships /></AdminRoute>} />
           <Route path="/admin/elections" element={<AdminRoute><AdminElections /></AdminRoute>} />
           <Route path="/admin/leadership" element={<AdminRoute><AdminLeadership /></AdminRoute>} />
           <Route path="/admin/documents" element={<AdminRoute><AdminDocuments /></AdminRoute>} />

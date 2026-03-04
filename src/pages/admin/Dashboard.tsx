@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { 
     Users, 
     Calendar, 
@@ -8,17 +9,42 @@ import {
     TrendingUp,
     UserCheck,
     Clock,
-    AlertCircle
+    AlertCircle,
+    BarChart3
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useNavigate } from "react-router-dom";
 import { useAdminData } from "@/contexts/AdminDataContext";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import type { ChartConfig } from "@/components/ui/chart";
+import { Bar, BarChart, XAxis, YAxis, CartesianGrid, Pie, PieChart, Cell, Legend } from "recharts";
+
+const MEMBER_CHART_CONFIG: ChartConfig = {
+    approved: { label: "Approved", color: "hsl(var(--brand-primary-600))" },
+    pending: { label: "Pending", color: "hsl(var(--brand-secondary-600))" },
+    rejected: { label: "Rejected", color: "hsl(var(--brand-feminine-600))" },
+};
+
+const PAYMENT_CHART_CONFIG: ChartConfig = {
+    paid: { label: "Paid", color: "hsl(var(--brand-primary-600))" },
+    pending: { label: "Pending", color: "hsl(var(--brand-secondary-600))" },
+    failed: { label: "Failed", color: "hsl(var(--brand-feminine-600))" },
+};
+
+const REVENUE_CHART_CONFIG: ChartConfig = {
+    amount: { label: "Revenue (SSP)", color: "hsl(var(--brand-primary-500))" },
+};
+
+const EVENTS_CHART_CONFIG: ChartConfig = {
+    upcoming: { label: "Upcoming", color: "hsl(var(--brand-primary-500))" },
+    past: { label: "Past", color: "hsl(var(--brand-secondary-600))" },
+};
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { members, payments, notifications } = useAdminData();
+    const { members, payments, notifications, events } = useAdminData();
 
     const totalMembers = members.length;
     const pendingMembers = members.filter(m => m.status === "pending").length;
@@ -29,6 +55,16 @@ const Dashboard = () => {
             const numeric = parseFloat(p.amount.replace(/[^\d.]/g, ""));
             return sum + (isNaN(numeric) ? 0 : numeric);
         }, 0);
+
+    const today = useMemo(() => {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        return d;
+    }, []);
+    const upcomingEventsCount = useMemo(() => 
+        events.filter(e => e.published !== false && new Date(e.date) >= today).length,
+        [events, today]
+    );
 
     const stats = [
         {
@@ -49,8 +85,8 @@ const Dashboard = () => {
         },
         {
             title: "Upcoming Events",
-            value: "0",
-            change: "No data yet",
+            value: upcomingEventsCount.toString(),
+            change: upcomingEventsCount ? "Published on site" : "No upcoming",
             trend: "neutral",
             icon: Calendar,
             color: "text-[hsl(var(--brand-primary-500))]"
@@ -64,6 +100,36 @@ const Dashboard = () => {
             color: "text-[hsl(var(--brand-secondary-700))]"
         }
     ];
+
+    const memberStatusData = useMemo(() => [
+        { name: "Approved", value: approvedMembers, fill: "var(--color-approved)" },
+        { name: "Pending", value: pendingMembers, fill: "var(--color-pending)" },
+        { name: "Rejected", value: members.filter(m => m.status === "rejected").length, fill: "var(--color-rejected)" },
+    ].filter(d => d.value > 0), [approvedMembers, pendingMembers, members]);
+
+    const paymentStatusData = useMemo(() => [
+        { name: "Paid", value: payments.filter(p => p.status === "paid").length, fill: "var(--color-paid)" },
+        { name: "Pending", value: payments.filter(p => p.status === "pending").length, fill: "var(--color-pending)" },
+        { name: "Failed", value: payments.filter(p => p.status === "failed").length, fill: "var(--color-failed)" },
+    ].filter(d => d.value > 0), [payments]);
+
+    const revenueByTypeData = useMemo(() => {
+        const byType: Record<string, number> = {};
+        payments.filter(p => p.status === "paid").forEach(p => {
+            const type = p.type || "Other";
+            byType[type] = (byType[type] || 0) + parseFloat(p.amount.replace(/[^\d.]/g, "")) || 0;
+        });
+        return Object.entries(byType).map(([type, amount]) => ({ type, amount: Math.round(amount) }));
+    }, [payments]);
+
+    const eventsOverviewData = useMemo(() => {
+        const upcoming = events.filter(e => e.published !== false && new Date(e.date) >= today).length;
+        const past = events.filter(e => new Date(e.date) < today).length;
+        return [
+            { name: "Upcoming", count: upcoming, fill: "var(--color-upcoming)" },
+            { name: "Past", count: past, fill: "var(--color-past)" },
+        ];
+    }, [events, today]);
 
     const recentActivities = notifications.slice(0, 4).map((n, index) => ({
         id: n.id,
@@ -117,6 +183,128 @@ const Dashboard = () => {
                         );
                     })}
                 </div>
+
+                {/* Website analytics */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <BarChart3 className="h-5 w-5" />
+                            Website analytics
+                        </CardTitle>
+                        <CardDescription>Performance and activity at a glance</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                            {/* Member status breakdown */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium text-muted-foreground">Members by status</h4>
+                                {memberStatusData.length > 0 ? (
+                                    <ChartContainer config={MEMBER_CHART_CONFIG} className="h-[200px] w-full">
+                                        <PieChart>
+                                            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                                            <Pie
+                                                data={memberStatusData}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={50}
+                                                outerRadius={80}
+                                                paddingAngle={2}
+                                                label={({ name, value }) => `${name}: ${value}`}
+                                            >
+                                                {memberStatusData.map((entry, i) => (
+                                                    <Cell key={entry.name} fill={entry.fill} />
+                                                ))}
+                                            </Pie>
+                                            <Legend />
+                                        </PieChart>
+                                    </ChartContainer>
+                                ) : (
+                                    <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                                        No member data yet
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Payment status breakdown */}
+                            <div className="space-y-2">
+                                <h4 className="text-sm font-medium text-muted-foreground">Payments by status</h4>
+                                {paymentStatusData.length > 0 ? (
+                                    <ChartContainer config={PAYMENT_CHART_CONFIG} className="h-[200px] w-full">
+                                        <PieChart>
+                                            <ChartTooltip content={<ChartTooltipContent hideLabel />} />
+                                            <Pie
+                                                data={paymentStatusData}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={50}
+                                                outerRadius={80}
+                                                paddingAngle={2}
+                                                label={({ name, value }) => `${name}: ${value}`}
+                                            >
+                                                {paymentStatusData.map((entry, i) => (
+                                                    <Cell key={entry.name} fill={entry.fill} />
+                                                ))}
+                                            </Pie>
+                                            <Legend />
+                                        </PieChart>
+                                    </ChartContainer>
+                                ) : (
+                                    <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                                        No payments yet
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Revenue by type */}
+                            <div className="space-y-2 md:col-span-2">
+                                <h4 className="text-sm font-medium text-muted-foreground">Revenue by type (SSP)</h4>
+                                {revenueByTypeData.length > 0 ? (
+                                    <ChartContainer config={REVENUE_CHART_CONFIG} className="h-[200px] w-full">
+                                        <BarChart data={revenueByTypeData} margin={{ top: 8, right: 8, bottom: 24, left: 8 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                            <XAxis dataKey="type" tickLine={false} axisLine={false} />
+                                            <YAxis tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
+                                            <ChartTooltip content={<ChartTooltipContent formatter={(v) => [`${Number(v).toLocaleString()} SSP`, "Revenue"]} />} />
+                                            <Bar dataKey="amount" radius={[4, 4, 0, 0]} fill="var(--color-amount)" />
+                                        </BarChart>
+                                    </ChartContainer>
+                                ) : (
+                                    <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                                        No revenue data yet
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Events overview */}
+                            <div className="space-y-2 md:col-span-2 lg:col-span-4">
+                                <h4 className="text-sm font-medium text-muted-foreground">Events overview</h4>
+                                {(eventsOverviewData[0].count > 0 || eventsOverviewData[1].count > 0) ? (
+                                    <ChartContainer config={EVENTS_CHART_CONFIG} className="h-[200px] w-full">
+                                        <BarChart data={eventsOverviewData} layout="vertical" margin={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                            <XAxis type="number" tickLine={false} axisLine={false} />
+                                            <YAxis type="category" dataKey="name" tickLine={false} axisLine={false} width={80} />
+                                            <ChartTooltip content={<ChartTooltipContent formatter={(v) => [v, "Events"]} />} />
+                                            <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                                                {eventsOverviewData.map((entry, i) => (
+                                                    <Cell key={entry.name} fill={entry.fill} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ChartContainer>
+                                ) : (
+                                    <div className="flex h-[200px] items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                                        No events yet
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
                 {/* Quick Actions */}
                 <Card>

@@ -44,33 +44,7 @@ export const LeadershipPreview = () => {
                                 {/* Gradient overlay matching Leadership page style */}
                                 <div className={`absolute inset-0 bg-gradient-to-br ${leadershipGradient} opacity-0 transition-opacity duration-300 group-hover:opacity-10`} />
 
-                                {/* Square Avatar Image - Mobile */}
-                                <div className="flex justify-center pt-4 md:hidden">
-                                    {member.image ? (
-                                        <button
-                                            onClick={() => setSelectedMember({
-                                                image: member.image!,
-                                                name: member.name,
-                                                position: member.position,
-                                                description: member.description
-                                            })}
-                                            className={`relative overflow-hidden rounded-lg border-2 border-border shadow-md transition-transform duration-200 hover:scale-105 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${isChairperson ? "h-28 w-28" : "h-24 w-24"}`}
-                                            aria-label={`View larger image of ${member.name}`}
-                                        >
-                                            <img
-                                                src={member.image}
-                                                alt={member.name}
-                                                className="h-full w-full object-cover"
-                                            />
-                                        </button>
-                                    ) : (
-                                        <div className={`flex items-center justify-center rounded-lg bg-gradient-to-br ${leadershipGradient} shadow-md ${isChairperson ? "h-28 w-28" : "h-24 w-24"}`}>
-                                            <Icon className={`text-white ${isChairperson ? "h-12 w-12" : "h-10 w-10"}`} />
-                                        </div>
-                                    )}
-                                </div>
-
-                                {/* Cover Image - Medium+ Screens */}
+                                {/* Cover Image - same on all screen sizes */}
                                 {member.image ? (
                                     <button
                                         onClick={() => setSelectedMember({
@@ -79,7 +53,7 @@ export const LeadershipPreview = () => {
                                             position: member.position,
                                             description: member.description
                                         })}
-                                        className="hidden relative w-full h-56 overflow-hidden transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 md:block lg:h-64"
+                                        className="relative w-full h-56 overflow-hidden transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 lg:h-64"
                                         aria-label={`View larger image of ${member.name}`}
                                     >
                                         <img
@@ -89,7 +63,7 @@ export const LeadershipPreview = () => {
                                         />
                                     </button>
                                 ) : (
-                                    <div className={`hidden w-full h-56 items-center justify-center bg-gradient-to-br ${leadershipGradient} md:flex lg:h-64`}>
+                                    <div className={`flex w-full h-56 items-center justify-center bg-gradient-to-br ${leadershipGradient} lg:h-64`}>
                                         <Icon className="h-12 w-12 text-white" />
                                     </div>
                                 )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Crown, Plus, Edit, Trash2, MapPin, UserCircle, FileText, DollarSign, Users, Megaphone, Scale, GraduationCap, Heart, Trophy, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import { executiveCommittee as staticExecutive, payamRepresentatives as staticPayam } from "@/data/leadership";
+import type { ExecutiveCommitteeMember } from "@/data/leadership";
 import {
     Dialog,
     DialogContent,
@@ -18,6 +19,24 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
+
+/** Order from most superior (Chairlady) to least for admin display. */
+const POSITION_ORDER = [
+    "Chairlady",
+    "Deputy Chairlady",
+    "Secretary General",
+    "Deputy Secretary General",
+    "Finance Secretary",
+    "Deputy Finance Secretary",
+    "Information Secretary",
+    "Deputy Information Secretary",
+    "Secretary for Internal and External Affairs",
+    "Secretary for Legal Affairs",
+    "Secretary for Education",
+    "Secretary for Health",
+    "Secretary for Culture and Sports",
+    "Advisor",
+];
 
 const iconMap: Record<string, React.ElementType> = {
     Crown,
@@ -46,15 +65,14 @@ const Leadership = () => {
         deletePayamRepresentative,
     } = useAdminData();
 
-    // Initialize with static data if empty
+    // Initialize with static data if empty (same images and order as public leadership page)
     useEffect(() => {
         if (executiveCommittee.length === 0) {
-            staticExecutive.forEach((m) => {
+            staticExecutive.forEach((m: ExecutiveCommitteeMember) => {
                 let iconName = "UserCircle";
                 try {
-                    if (typeof m.icon === 'function') {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const iconFunc = m.icon as { name?: string } & ((props: any) => JSX.Element);
+                    if (typeof m.icon === "function") {
+                        const iconFunc = m.icon as { name?: string };
                         iconName = iconFunc.name || "UserCircle";
                     }
                 } catch {
@@ -66,6 +84,7 @@ const Leadership = () => {
                     description: m.description,
                     color: m.color,
                     icon: iconName,
+                    image: m.image,
                 });
             });
         }
@@ -74,6 +93,8 @@ const Leadership = () => {
                 addPayamRepresentative({
                     name: p.name,
                     payam: p.payam,
+                    ...(p.position && { position: p.position }),
+                    ...(p.image && { image: p.image }),
                 });
             });
         }
@@ -114,9 +135,10 @@ const Leadership = () => {
         } else {
             const rep = payamRepresentatives.find(r => r.id === id);
             if (rep) {
+                const staticRep = staticPayam.find((s) => s.payam === rep.payam);
                 setEditForm({
-                    name: rep.name,
-                    position: "",
+                    name: staticRep?.name ?? rep.name,
+                    position: rep.position ?? staticRep?.position ?? "",
                     description: "",
                     payam: rep.payam,
                     color: "",
@@ -141,7 +163,7 @@ const Leadership = () => {
             }
             updateExecutiveMember(editingMember.id, {
                 name: editForm.name,
-                position: editForm.position,
+                position: normalizePosition(editForm.position),
                 description: editForm.description,
                 color: editForm.color,
             });
@@ -161,6 +183,7 @@ const Leadership = () => {
             updatePayamRepresentative(editingMember.id, {
                 name: editForm.name,
                 payam: editForm.payam,
+                position: editForm.position.trim() || undefined,
             });
             toast({
                 title: "Representative Updated",
@@ -185,6 +208,28 @@ const Leadership = () => {
         }
     };
 
+    // Normalize position: Chairperson → Chairlady, Deputy Chairperson → Deputy Chairlady (display and save)
+    const normalizePosition = (position: string) => {
+        const p = position.trim();
+        if (p === "Chairperson") return "Chairlady";
+        if (p === "Deputy Chairperson" || p.toLowerCase() === "deputy chairperson") return "Deputy Chairlady";
+        return p;
+    };
+    const displayPosition = (position: string) => normalizePosition(position);
+
+    // Sort executive committee: Chairlady first, then by POSITION_ORDER
+    const sortedExecutiveCommittee = useMemo(() => {
+        return [...executiveCommittee].sort((a, b) => {
+            const posA = displayPosition(a.position);
+            const posB = displayPosition(b.position);
+            const i = POSITION_ORDER.indexOf(posA);
+            const j = POSITION_ORDER.indexOf(posB);
+            const rankA = i === -1 ? POSITION_ORDER.length : i;
+            const rankB = j === -1 ? POSITION_ORDER.length : j;
+            return rankA - rankB;
+        });
+    }, [executiveCommittee]);
+
     const handleAdd = (e: React.FormEvent) => {
         e.preventDefault();
         if (addForm.type === "executive") {
@@ -198,7 +243,7 @@ const Leadership = () => {
             }
             addExecutiveMember({
                 name: addForm.name,
-                position: addForm.position,
+                position: normalizePosition(addForm.position),
                 description: addForm.description,
                 color: addForm.color,
             });
@@ -215,10 +260,11 @@ const Leadership = () => {
                 });
                 return;
             }
-            addPayamRepresentative({
-                name: addForm.name,
-                payam: addForm.payam,
-            });
+                                            addPayamRepresentative({
+                                                name: addForm.name,
+                                                payam: addForm.payam,
+                                                ...(addForm.position?.trim() && { position: addForm.position.trim() }),
+                                            });
             toast({
                 title: "Representative Added",
                 description: `${addForm.name} has been added to payam representatives.`,
@@ -288,7 +334,7 @@ const Leadership = () => {
                                                 <Label htmlFor="position">Position *</Label>
                                                 <Input
                                                     id="position"
-                                                    placeholder="e.g., Secretary General"
+                                                    placeholder="e.g., Chairlady, Secretary General"
                                                     value={addForm.position}
                                                     onChange={(e) => setAddForm({ ...addForm, position: e.target.value })}
                                                     required
@@ -305,16 +351,27 @@ const Leadership = () => {
                                             </div>
                                         </>
                                     ) : (
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="payam">Payam *</Label>
-                                            <Input
-                                                id="payam"
-                                                placeholder="e.g., Ajuong, Kongor, Lith"
-                                                value={addForm.payam}
-                                                onChange={(e) => setAddForm({ ...addForm, payam: e.target.value, position: `${e.target.value} Payam Representative` })}
-                                                required
-                                            />
-                                        </div>
+                                        <>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="payam">Payam *</Label>
+                                                <Input
+                                                    id="payam"
+                                                    placeholder="e.g., Ajuong, Kongor, Lith"
+                                                    value={addForm.payam}
+                                                    onChange={(e) => setAddForm({ ...addForm, payam: e.target.value })}
+                                                    required
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="payamTitle">Title (optional)</Label>
+                                                <Input
+                                                    id="payamTitle"
+                                                    placeholder="e.g., Chairlady of Kongor First Class"
+                                                    value={addForm.position}
+                                                    onChange={(e) => setAddForm({ ...addForm, position: e.target.value })}
+                                                />
+                                            </div>
+                                        </>
                                     )}
                                 </div>
                                 <DialogFooter>
@@ -336,18 +393,29 @@ const Leadership = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {executiveCommittee.map((member) => {
+                            {sortedExecutiveCommittee.map((member) => {
                                 const Icon = member.icon && iconMap[member.icon] ? iconMap[member.icon] : UserCircle;
+                                const imageUrl = member.image ?? staticExecutive.find((s) => s.name === member.name)?.image;
                                 return (
                                     <div
                                         key={member.id}
                                         className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm transition-all hover:shadow-md"
                                     >
-                                        <div className="mb-4 flex items-center justify-between">
-                                            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[hsl(var(--brand-primary-500))] to-[hsl(var(--brand-secondary-500))]">
-                                                <Icon className="h-6 w-6 text-white" />
+                                        <div className="mb-4 flex items-start justify-between gap-3">
+                                            <div className="flex h-14 w-14 flex-shrink-0 overflow-hidden rounded-full border-2 border-border bg-muted">
+                                                {imageUrl ? (
+                                                    <img
+                                                        src={imageUrl}
+                                                        alt={member.name}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[hsl(var(--brand-primary-500))] to-[hsl(var(--brand-secondary-500))]">
+                                                        <Icon className="h-6 w-6 text-white" />
+                                                    </div>
+                                                )}
                                             </div>
-                                            <div className="flex gap-2">
+                                            <div className="flex gap-2 flex-shrink-0">
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
@@ -367,7 +435,7 @@ const Leadership = () => {
                                             </div>
                                         </div>
                                         <h3 className="mb-1 font-semibold">{member.name}</h3>
-                                        <p className="mb-2 text-sm text-muted-foreground">{member.position}</p>
+                                        <p className="mb-2 text-sm text-muted-foreground">{displayPosition(member.position)}</p>
                                         <p className="text-xs text-muted-foreground">{member.description}</p>
                                     </div>
                                 );
@@ -384,19 +452,35 @@ const Leadership = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {payamRepresentatives.map((rep) => (
+                            {payamRepresentatives.map((rep) => {
+                                const staticRep = staticPayam.find((s) => s.payam === rep.payam);
+                                const displayName = staticRep?.name ?? rep.name;
+                                const displayPosition = rep.position ?? staticRep?.position;
+                                const imageUrl = rep.image ?? staticRep?.image;
+                                return (
                                 <div
                                     key={rep.id}
                                     className="group rounded-lg border border-border bg-card p-5 shadow-sm transition-all hover:shadow-md"
                                 >
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start gap-3 flex-1">
-                                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[hsl(var(--brand-primary-100))]">
-                                                <MapPin className="h-5 w-5 text-[hsl(var(--brand-primary-600))]" />
-                                            </div>
+                                            {imageUrl ? (
+                                                <img
+                                                    src={imageUrl}
+                                                    alt={displayName}
+                                                    className="h-12 w-12 flex-shrink-0 rounded-full object-cover border border-border"
+                                                />
+                                            ) : (
+                                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-[hsl(var(--brand-primary-100))]">
+                                                    <MapPin className="h-5 w-5 text-[hsl(var(--brand-primary-600))]" />
+                                                </div>
+                                            )}
                                             <div className="flex-1">
-                                                <h3 className="mb-1 font-semibold">{rep.name}</h3>
+                                                <h3 className="mb-1 font-semibold">{displayName}</h3>
                                                 <p className="text-sm text-muted-foreground">{rep.payam} Payam</p>
+                                                {displayPosition && (
+                                                    <p className="text-xs text-muted-foreground mt-0.5">{displayPosition}</p>
+                                                )}
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
@@ -412,14 +496,15 @@ const Leadership = () => {
                                                 size="sm"
                                                 variant="ghost"
                                                 className="h-8 w-8 p-0 text-[hsl(var(--brand-feminine-600))]"
-                                                onClick={() => handleDelete(rep.id, "payam", rep.name)}
+                                                onClick={() => handleDelete(rep.id, "payam", displayName)}
                                             >
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </CardContent>
                 </Card>
@@ -453,7 +538,7 @@ const Leadership = () => {
                                             <Label htmlFor="editPosition">Position *</Label>
                                             <Input
                                                 id="editPosition"
-                                                placeholder="e.g., Secretary General"
+                                                placeholder="e.g., Chairlady, Secretary General"
                                                 value={editForm.position}
                                                 onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
                                                 required
@@ -498,6 +583,15 @@ const Leadership = () => {
                                                 value={editForm.payam}
                                                 onChange={(e) => setEditForm({ ...editForm, payam: e.target.value })}
                                                 required
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="editRepPosition">Title (optional)</Label>
+                                            <Input
+                                                id="editRepPosition"
+                                                placeholder="e.g., Chairlady of Kongor First Class"
+                                                value={editForm.position}
+                                                onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
                                             />
                                         </div>
                                     </>

@@ -11,8 +11,8 @@ export const contactInformation: ContactInfo[] = [
     {
         icon: Mail,
         title: "Email",
-        value: "nyancitarialbeek.juba@gmail.com",
-        link: "mailto:nyancitarialbeek.juba@gmail.com"
+        value: "info@ncaa.org.ss",
+        link: "mailto:info@ncaa.org.ss"
     },
     {
         icon: Phone,

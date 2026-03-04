@@ -1,18 +1,29 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin } from "lucide-react";
-import { pastEvents } from "@/data/events";
+import { usePublicEvents } from "@/hooks/usePublicEvents";
+
+/** Top 3 past events to show on homepage, in this order (only those with images are included). */
+const FEATURED_PAST_EVENT_TITLES = [
+    "NCAA Annual Trade Fair",
+    "Visit to Panyagoor",
+    "Quarterly Financial Review",
+];
 
 export const PastEventsPreview = () => {
-    // Show only the first 3 past events
-    const previewEvents = pastEvents.slice(0, 3);
-    const [needsReadMore, setNeedsReadMore] = useState<Set<number>>(new Set());
-    const descriptionRefs = useRef<{ [key: number]: HTMLParagraphElement | null }>({});
+    const { pastEvents } = usePublicEvents();
+    const previewEvents = useMemo(() => {
+        const withImages = pastEvents.filter((e) => e.image);
+        return FEATURED_PAST_EVENT_TITLES.map((title) => withImages.find((e) => e.title === title)).filter(
+            (e): e is NonNullable<typeof e> => e != null
+        );
+    }, [pastEvents]);
+    const [needsReadMore, setNeedsReadMore] = useState<Set<string>>(new Set());
+    const descriptionRefs = useRef<Record<string, HTMLParagraphElement | null>>({});
 
     useEffect(() => {
-        // Check if descriptions need "Read More" button
-        const newNeedsReadMore = new Set<number>();
+        const newNeedsReadMore = new Set<string>();
         previewEvents.forEach((event) => {
             const element = descriptionRefs.current[event.id];
             if (element) {
@@ -30,7 +41,7 @@ export const PastEventsPreview = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const shouldShowReadMore = (eventId: number) => needsReadMore.has(eventId);
+    const shouldShowReadMore = (eventId: string) => needsReadMore.has(eventId);
 
     return (
         <section className="py-16 md:py-24 bg-muted/30">
@@ -45,9 +56,12 @@ export const PastEventsPreview = () => {
                     </p>
                 </div>
 
-                {/* Events List */}
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto mb-12">
-                    {previewEvents.map((event) => (
+                    {previewEvents.length === 0 ? (
+                        <div className="col-span-full rounded-xl border border-border bg-card p-8 text-center text-muted-foreground">
+                            No past events yet.
+                        </div>
+                    ) : previewEvents.map((event) => (
                         <div
                             key={event.id}
                             className="rounded-xl border border-border bg-background overflow-hidden shadow-sm transition-all hover:shadow-md"
@@ -83,7 +97,7 @@ export const PastEventsPreview = () => {
                                                 variant="link"
                                                 className="h-auto p-0 mt-2 text-xs text-primary hover:text-primary/80"
                                             >
-                                                <Link to="/events/past">
+                                                <Link to={`/events/event/${event.id}`}>
                                                     Read More
                                                 </Link>
                                             </Button>

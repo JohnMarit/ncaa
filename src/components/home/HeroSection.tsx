@@ -3,14 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 
-// Import background images
+// Import background images (Arialbeek first so it appears when the site opens)
+import arialbeekImage from "@/images/Arialbeek.jpeg";
 import ncaImage from "@/images/nca.jpg";
 import ncagoodImage from "@/images/ncagood.jpg";
 import nca2Image from "@/images/nca2.jpg";
 
 export function HeroSection() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const backgroundImages = [ncaImage, ncagoodImage, nca2Image];
+  const backgroundImages = [arialbeekImage, ncaImage, ncagoodImage, nca2Image];
   const buttonContainerRef = useRef<HTMLDivElement>(null);
 
   // Rotate images every 4 seconds

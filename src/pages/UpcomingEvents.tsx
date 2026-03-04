@@ -1,9 +1,11 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Calendar, MapPin, Clock } from "lucide-react";
-import { upcomingEvents } from "@/data/events";
+import { usePublicEvents } from "@/hooks/usePublicEvents";
 
 const UpcomingEvents = () => {
+  const { upcomingEvents } = usePublicEvents();
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -23,34 +25,54 @@ const UpcomingEvents = () => {
 
         <section className="py-16 md:py-24">
           <div className="container space-y-6">
-            {upcomingEvents.map((event) => (
-              <div
-                key={event.id}
-                className="rounded-xl border border-border bg-card overflow-hidden shadow-sm transition-all hover:shadow-md"
-              >
-                <div className="flex flex-col md:flex-row">
-                  <div className="w-full h-64 md:w-1/3 md:min-h-64 bg-muted/50 shrink-0" aria-hidden />
-                  <div className="p-6 md:w-2/3">
-                    <h3 className="mb-3 font-heading text-xl font-bold">{event.title}</h3>
-                  <p className="mb-4 text-muted-foreground">{event.description}</p>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4 shrink-0" />
-                      <span>{event.date}</span>
+            {upcomingEvents.length === 0 ? (
+              <div className="rounded-xl border border-border bg-card p-12 text-center">
+                <p className="text-muted-foreground">No upcoming events yet.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Check back later for meetings, celebrations, and community gatherings.</p>
+              </div>
+            ) : (
+              upcomingEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="rounded-xl border border-border bg-card overflow-hidden shadow-sm transition-all hover:shadow-md"
+                >
+                  <div className="flex flex-col md:flex-row">
+                    {/* Original layout: image area (placeholder for static events; image when provided by admin) */}
+                    <div className="w-full h-64 md:w-1/3 md:min-h-64 shrink-0 bg-muted/50 overflow-hidden">
+                      {event.image ? (
+                        <img
+                          src={event.image}
+                          alt={event.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                          }}
+                        />
+                      ) : null}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4 shrink-0" />
-                      <span>{event.time}</span>
+                    <div className="p-6 md:w-2/3">
+                      <h3 className="mb-3 font-heading text-xl font-bold">{event.title}</h3>
+                      <p className="mb-4 text-muted-foreground">{event.description}</p>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4 shrink-0" />
+                          <span>{event.date}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4 shrink-0" />
+                          <span>{event.time}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPin className="h-4 w-4 shrink-0" />
+                          <span>{event.location}</span>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="h-4 w-4 shrink-0" />
-                      <span>{event.location}</span>
-                    </div>
-                  </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </section>
       </main>

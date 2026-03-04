@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { DollarSign, Search, Download, CheckCircle, XCircle, Filter } from "lucide-react";
+import { DollarSign, Search, Download, CheckCircle, XCircle, Filter, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminData } from "@/contexts/AdminDataContext";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import {
     Table,
     TableBody,
@@ -17,11 +26,34 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
+const PAYMENT_TYPES = [
+    { value: "Membership", label: "Membership" },
+    { value: "Donation", label: "Donation" },
+    { value: "Event", label: "Event" },
+    { value: "Other", label: "Other" },
+];
+
+const PAYMENT_METHODS = [
+    { value: "Cash", label: "Cash" },
+    { value: "Mobile Money", label: "Mobile Money" },
+    { value: "Bank Transfer", label: "Bank Transfer" },
+    { value: "Other", label: "Other" },
+];
+
 const Payments = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "paid" | "pending" | "failed">("all");
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    const [addForm, setAddForm] = useState({
+        memberName: "",
+        memberEmail: "",
+        amount: "",
+        type: "Membership",
+        method: "Cash",
+    });
+    const [addFormErrors, setAddFormErrors] = useState<Record<string, string>>({});
     const { toast } = useToast();
-    const { payments } = useAdminData();
+    const { payments, addPayment } = useAdminData();
 
     const filteredPayments = payments.filter(payment => {
         const matchesSearch = payment.memberName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -109,13 +141,132 @@ const Payments = () => {
         });
     };
 
+    const handleAddPayment = (e: React.FormEvent) => {
+        e.preventDefault();
+        const err: Record<string, string> = {};
+        if (!addForm.memberName.trim()) err.memberName = "Member name is required.";
+        if (!addForm.memberEmail.trim()) err.memberEmail = "Email is required.";
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addForm.memberEmail.trim())) err.memberEmail = "Enter a valid email address.";
+        if (!addForm.amount.trim()) err.amount = "Amount is required.";
+        else if (!/^[\d.,]+$/.test(addForm.amount.replace(/\s/g, ""))) err.amount = "Enter a valid amount (numbers only).";
+        setAddFormErrors(err);
+        if (Object.keys(err).length > 0) {
+            toast({
+                title: "Validation Error",
+                description: "Please fill in all required fields correctly.",
+                variant: "destructive",
+            });
+            return;
+        }
+        const amountDisplay = addForm.amount.trim().includes("SSP") || /^\d+$/.test(addForm.amount.trim())
+            ? addForm.amount.trim()
+            : `${addForm.amount.trim()} SSP`;
+        addPayment({
+            memberName: addForm.memberName.trim(),
+            memberEmail: addForm.memberEmail.trim(),
+            amount: amountDisplay,
+            type: addForm.type,
+            method: addForm.method,
+            status: "paid",
+        });
+        toast({
+            title: "Payment Recorded",
+            description: `Cash payment of ${amountDisplay} for ${addForm.memberName.trim()} has been added.`,
+        });
+        setAddForm({ memberName: "", memberEmail: "", amount: "", type: "Membership", method: "Cash" });
+        setAddFormErrors({});
+        setIsAddDialogOpen(false);
+    };
+
     return (
         <AdminLayout>
             <div className="space-y-6">
                 {/* Header */}
-                <div>
-                    <h1 className="text-3xl font-bold">Payment Management</h1>
-                    <p className="text-muted-foreground">Track and manage membership payments</p>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold">Payment Management</h1>
+                        <p className="text-muted-foreground">Track and manage membership payments</p>
+                    </div>
+                    <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) setAddFormErrors({}); }}>
+                        <Button type="button" onClick={() => setIsAddDialogOpen(true)}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Record cash payment
+                        </Button>
+                        <DialogContent className="max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Record payment</DialogTitle>
+                                <DialogDescription>Add a payment received in cash (or another method). It will be recorded as paid.</DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleAddPayment}>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="add-memberName">Member name *</Label>
+                                        <Input
+                                            id="add-memberName"
+                                            placeholder="Full name"
+                                            value={addForm.memberName}
+                                            onChange={(e) => setAddForm({ ...addForm, memberName: e.target.value })}
+                                            className={addFormErrors.memberName ? "border-destructive" : ""}
+                                        />
+                                        {addFormErrors.memberName && <p className="text-sm text-destructive">{addFormErrors.memberName}</p>}
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="add-memberEmail">Email *</Label>
+                                        <Input
+                                            id="add-memberEmail"
+                                            type="email"
+                                            placeholder="email@example.com"
+                                            value={addForm.memberEmail}
+                                            onChange={(e) => setAddForm({ ...addForm, memberEmail: e.target.value })}
+                                            className={addFormErrors.memberEmail ? "border-destructive" : ""}
+                                        />
+                                        {addFormErrors.memberEmail && <p className="text-sm text-destructive">{addFormErrors.memberEmail}</p>}
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="add-amount">Amount *</Label>
+                                        <Input
+                                            id="add-amount"
+                                            placeholder="e.g. 5000 or 5000 SSP"
+                                            value={addForm.amount}
+                                            onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })}
+                                            className={addFormErrors.amount ? "border-destructive" : ""}
+                                        />
+                                        {addFormErrors.amount && <p className="text-sm text-destructive">{addFormErrors.amount}</p>}
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="add-type">Type</Label>
+                                        <Select value={addForm.type} onValueChange={(v) => setAddForm({ ...addForm, type: v })}>
+                                            <SelectTrigger id="add-type">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {PAYMENT_TYPES.map((p) => (
+                                                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="add-method">Method</Label>
+                                        <Select value={addForm.method} onValueChange={(v) => setAddForm({ ...addForm, method: v })}>
+                                            <SelectTrigger id="add-method">
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {PAYMENT_METHODS.map((p) => (
+                                                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+                                <DialogFooter className="border-t border-border pt-4 mt-2">
+                                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
+                                    <Button type="submit">Add payment</Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
                 </div>
 
                 {/* Statistics */}

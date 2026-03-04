@@ -1,9 +1,11 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Calendar, MapPin } from "lucide-react";
-import { pastEvents } from "@/data/events";
+import { Calendar, MapPin, Clock } from "lucide-react";
+import { usePublicEvents } from "@/hooks/usePublicEvents";
 
 const PastEvents = () => {
+  const { pastEvents } = usePublicEvents();
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -23,7 +25,13 @@ const PastEvents = () => {
 
         <section className="py-16 md:py-24">
           <div className="container space-y-6">
-            {pastEvents.map((event) => (
+            {pastEvents.length === 0 ? (
+              <div className="rounded-xl border border-border bg-card p-12 text-center">
+                <p className="text-muted-foreground">No past events yet.</p>
+                <p className="mt-2 text-sm text-muted-foreground">Past events will appear here after their date has passed.</p>
+              </div>
+            ) : (
+            pastEvents.map((event) => (
               <div key={event.id} className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
                 <div className="flex flex-col md:flex-row">
                   {event.image && (
@@ -39,7 +47,7 @@ const PastEvents = () => {
                       />
                     </div>
                   )}
-                  <div className={`p-6 ${event.image ? 'md:w-2/3' : 'w-full'}`}>
+                  <div className={`p-6 ${event.image ? "md:w-2/3" : "w-full"}`}>
                     <h3 className="mb-3 font-heading text-xl font-bold">{event.title}</h3>
                     {event.description && (
                       <p className="mb-4 text-muted-foreground">{event.description}</p>
@@ -49,6 +57,12 @@ const PastEvents = () => {
                         <Calendar className="h-4 w-4" />
                         <span>{event.date}</span>
                       </div>
+                      {event.time && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          <span>{event.time}</span>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <MapPin className="h-4 w-4" />
                         <span>{event.location}</span>
@@ -57,7 +71,8 @@ const PastEvents = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </section>
       </main>

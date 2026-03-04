@@ -105,15 +105,15 @@ const Contact = () => {
                                     <div className="space-y-4">
                                         <div className="rounded-lg border border-border bg-card p-4">
                                             <h4 className="font-semibold">President</h4>
-                                            <p className="text-sm text-muted-foreground">president@nca-twiceast.org</p>
+                                            <p className="text-sm text-muted-foreground">info@ncaa.org.ss</p>
                                         </div>
                                         <div className="rounded-lg border border-border bg-card p-4">
                                             <h4 className="font-semibold">Secretary General</h4>
-                                            <p className="text-sm text-muted-foreground">secretary@nca-twiceast.org</p>
+                                            <p className="text-sm text-muted-foreground">info@ncaa.org.ss</p>
                                         </div>
                                         <div className="rounded-lg border border-border bg-card p-4">
                                             <h4 className="font-semibold">IEC Chairlady</h4>
-                                            <p className="text-sm text-muted-foreground">iec@nca-twiceast.org</p>
+                                            <p className="text-sm text-muted-foreground">info@ncaa.org.ss</p>
                                         </div>
                                     </div>
                                 </div>

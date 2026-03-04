@@ -115,7 +115,7 @@ const Donate = () => {
                                 Support NCAA
                             </h1>
                             <p className="text-lg text-primary-foreground/90 md:text-xl">
-                                Your donation helps empower women from Twic East through education, welfare, and community development
+                                Your donation helps empower girls from Twic East through education, welfare, and community development
                             </p>
                         </div>
                     </div>

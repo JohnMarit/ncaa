@@ -19,7 +19,7 @@ const Constitution = () => {
         },
         {
             title: "Name and Legal Status",
-            content: "The organization shall be known as Nyan Cit Arialbeek (NCAA), a non-political, non-profit making body dedicated to educating and supporting women from Twic East County."
+            content: "The organization shall be known as Nyan Cit Arialbeek (NCAA), a non-political, non-profit making body dedicated to educating and supporting girls from Twic East County."
         },
         {
             title: "Registered Office",

@@ -46,7 +46,7 @@ export function Footer() {
               </div>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-              Empowering the women of Twic East through unity, education, and
+              Empowering the girls of Twic East through unity, education, and
               community development. Together we build a brighter future.
             </p>
             <div className="mt-6 flex gap-4">

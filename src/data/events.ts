@@ -3,7 +3,7 @@ import awardsImage from "@/images/awards.jpg";
 import nca2Image from "@/images/nca2.jpg";
 import ncaReportImage from "@/images/nca-report.jpeg";
 import panyagoorImage from "@/images/nca1.jpg";
-import womenImage from "@/images/Women.png";
+import girlsImage from "@/images/Women.PNG";
 
 export type UpcomingEvent = {
   id: number;
@@ -66,13 +66,13 @@ export const upcomingEvents: UpcomingEvent[] = [
   },
   {
     id: 5,
-    title: "International Women's Day",
+    title: "International Girls' Day",
     date: "March 8, 2026",
     time: "10:00 AM - 4:00 PM",
     location: "Gold Orchid, Juba",
     attendees: 150,
-    description: "Join us in celebrating International Women's Day with themes of equality, empowerment, and solidarity. A day of reflection, discussion, and celebration of women's achievements and the path ahead.",
-    image: womenImage,
+    description: "Join us in celebrating International Girls' Day with themes of equality, empowerment, and solidarity. A day of reflection, discussion, and celebration of girls' achievements and the path ahead.",
+    image: girlsImage,
   },
 ];
 

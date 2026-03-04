@@ -22,7 +22,7 @@ const upcomingEvents = [
   },
   {
     id: 3,
-    title: "Women's Day Celebration",
+    title: "Girls' Day Celebration",
     date: "March 8, 2024",
     time: "2:00 PM",
     location: "Freedom Hall, Juba",

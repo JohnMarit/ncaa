@@ -54,7 +54,7 @@ export function HeroSection() {
             style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
           >
             <span className="flex h-2 w-2 rounded-full bg-white shrink-0" />
-            <span className="truncate">Empowering Twic East Women</span>
+            <span className="truncate">Empowering Twic East Girls</span>
           </div>
 
           {/* Headline */}
@@ -71,7 +71,7 @@ export function HeroSection() {
             style={{ textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}
           >
             United in purpose, strong in community. We champion the education,
-            welfare, and empowerment of women from Twic East across South Sudan
+            welfare, and empowerment of girls from Twic East across South Sudan
             and the diaspora.
           </p>
 

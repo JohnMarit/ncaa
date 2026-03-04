@@ -13,7 +13,7 @@ export const MembershipPreview = () => {
                         Join NCAA
                     </h2>
                     <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
-                        Become part of our community and help empower women from Twic East
+                        Become part of our community and help empower girls from Twic East
                     </p>
                 </div>
 

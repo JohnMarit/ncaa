@@ -10,7 +10,7 @@ const values = [
   {
     icon: Lightbulb,
     title: "Empowerment",
-    description: "Uplifting women through education, resources, and community support.",
+    description: "Uplifting girls through education, resources, and community support.",
   },
   {
     icon: Handshake,
@@ -35,11 +35,11 @@ export function MissionSection() {
               Our Mission
             </span>
             <h2 className="mb-6 font-heading text-3xl font-bold leading-tight text-foreground md:text-4xl">
-              Empowering Women, Building{" "}
+              Empowering Girls, Building{" "}
               <span className="text-primary">Community</span>
             </h2>
             <p className="mb-6 text-lg leading-relaxed text-muted-foreground">
-              Nyan Cit Arialbeek exists to unite the women of Twic East County,
+              Nyan Cit Arialbeek exists to unite the girls of Twic East County,
               fostering solidarity, mutual support, and collective action for
               the betterment of our community.
             </p>
@@ -75,7 +75,7 @@ export function MissionSection() {
             <div className="relative aspect-[4/3] overflow-hidden rounded-2xl shadow-elevated">
               <img
                 src={nca1Image}
-                alt="NCAA Event - Empowering Women, Building Community"
+                alt="NCAA Event - Empowering Girls, Building Community"
                 className="h-full w-full object-cover"
               />
               {/* Dark overlay for better text readability if needed */}

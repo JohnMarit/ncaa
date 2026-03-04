@@ -56,7 +56,7 @@ const About = () => {
                                 </div>
                                 <h3 className="mb-2 font-heading text-xl font-semibold">Unity</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Bringing together women from Twic East across the world
+                                    Bringing together girls from Twic East across the world
                                 </p>
                             </div>
                             <div className="rounded-xl bg-background p-6 text-center shadow-sm">
@@ -107,7 +107,7 @@ const About = () => {
                                 <div className="rounded-lg border border-border bg-card p-6">
                                     <h3 className="mb-2 font-heading text-xl font-semibold">2023 - Foundation</h3>
                                     <p className="text-muted-foreground">
-                                        NCAA was established to unite and empower women from Twic East,
+                                        NCAA was established to unite and empower girls from Twic East,
                                         creating a strong support network across South Sudan and the diaspora.
                                     </p>
                                 </div>

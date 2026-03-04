@@ -23,7 +23,7 @@ export function CTASection() {
             <p className="mb-8 text-base sm:text-lg text-primary-foreground/90 md:text-xl">
               Become a member of Nyan Cit Arialbeek today. Together, we can
               strengthen our bonds, support our sisters, and build a brighter
-              future for Twic East women everywhere.
+              future for Twic East girls everywhere.
             </p>
             <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 flex-wrap px-2">
               <Button

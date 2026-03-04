@@ -72,7 +72,7 @@ const Membership = () => {
                                 Join NCAA
                             </h1>
                             <p className="text-lg text-primary-foreground/90 md:text-xl">
-                                Become part of our community and help empower women from Twic East
+                                Become part of our community and help empower girls from Twic East
                             </p>
                         </div>
                     </div>
@@ -250,7 +250,7 @@ const Membership = () => {
                                 </div>
                                 <h3 className="mb-2 font-heading text-xl font-semibold">Community</h3>
                                 <p className="text-sm text-muted-foreground">
-                                    Connect with 2,500+ women from Twic East across the world
+                                    Connect with 2,500+ girls from Twic East across the world
                                 </p>
                             </div>
                             <div className="text-center">

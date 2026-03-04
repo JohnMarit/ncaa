@@ -45,7 +45,7 @@ const Regulations = () => {
             sections: [
                 {
                     title: "Membership Categories",
-                    content: "Full membership for women from Twic East County aged 18 and above. Associate membership for supporters and friends of NCAA with endorsement by two full members."
+                    content: "Full membership for girls from Twic East County aged 18 and above. Associate membership for supporters and friends of NCAA with endorsement by two full members."
                 },
                 {
                     title: "Rights and Privileges",

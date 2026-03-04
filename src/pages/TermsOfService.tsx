@@ -14,7 +14,7 @@ const TermsOfService = () => {
         {
             icon: CheckCircle,
             title: "Membership Terms",
-            content: "Membership in NCAA is subject to approval by the Executive Committee. Members must be women from Twic East County aged 18 and above, pay annual membership dues, and commit to NCAA values and objectives as outlined in our Constitution and Regulations. Members are expected to participate in good faith and contribute positively to the community."
+            content: "Membership in NCAA is subject to approval by the Executive Committee. Members must be girls from Twic East County aged 18 and above, pay annual membership dues, and commit to NCAA values and objectives as outlined in our Constitution and Regulations. Members are expected to participate in good faith and contribute positively to the community."
         },
         {
             icon: FileText,

@@ -1,4 +1,3 @@
-import { usePaystackPayment } from "react-paystack";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,71 +20,59 @@ const PaystackDonation = ({
 }: PaystackDonationProps) => {
   const { toast } = useToast();
 
-  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
-
-  const config = {
-    reference: new Date().getTime().toString(),
-    email: email,
-    amount: amount * 100, // Paystack expects amount in kobo/cents
-    publicKey: publicKey,
-    firstname: name.split(" ")[0],
-    lastname: name.split(" ").slice(1).join(" "),
-    phone: phone,
-    currency: "USD", // Change to your preferred currency
-    metadata: {
-      donationAmount: amount,
-      donorName: name,
-      isDonation: true,
-    },
-  };
-
-  const initializePayment = usePaystackPayment(config);
-
-  const handleDonate = () => {
-    if (!publicKey) {
-      const host = typeof window !== "undefined" ? window.location.host : "";
-      const isVercel = host.includes("vercel.app") || host.includes("ncaa.org.ss");
-
-      console.warn(
-        "Paystack public key missing. Expected import.meta.env.VITE_PAYSTACK_PUBLIC_KEY to be defined at build time.",
-        {
-          host,
-          isVercel,
-          hasKey: false,
-        }
-      );
-
-      toast({
-        title: "Paystack not configured",
-        description:
-          "Missing VITE_PAYSTACK_PUBLIC_KEY. If deployed on Vercel, ensure the variable is set for Production and redeploy (clear build cache).",
-        variant: "destructive",
+  const handleDonate = async () => {
+    try {
+      const resp = await fetch("/api/paystack/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          email,
+          name,
+          phone,
+          currency: "USD",
+        }),
       });
-      return;
-    }
 
-    initializePayment(
-      (reference: any) => {
+      const data = await resp.json().catch(() => null);
+      if (!resp.ok) {
         toast({
-          title: "Donation Successful!",
-          description: `Thank you for your donation of $${amount}. Reference: ${reference?.reference ?? ""}`,
-        });
-        onSuccess(reference?.reference ?? "");
-      },
-      () => {
-        toast({
-          title: "Payment Cancelled",
-          description: "You have cancelled the donation process.",
+          title: "Payment setup failed",
+          description: data?.error ?? "Unable to initialize Paystack transaction.",
           variant: "destructive",
         });
-        onClose();
+        return;
       }
-    );
+
+      const authorizationUrl = data?.authorization_url as string | undefined;
+      const reference = data?.reference as string | undefined;
+
+      if (!authorizationUrl) {
+        toast({
+          title: "Payment setup failed",
+          description: "Missing Paystack authorization URL.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (reference) {
+        onSuccess(reference);
+      }
+
+      window.location.assign(authorizationUrl);
+    } catch (e: any) {
+      toast({
+        title: "Payment setup failed",
+        description: e?.message ?? "Network error.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <Button onClick={handleDonate} size="lg" className="w-full">
-      Donate ${amount} with Paystack
+      Continue to Payment
     </Button>
   );
 };

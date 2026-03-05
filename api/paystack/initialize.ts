@@ -36,10 +36,9 @@ export default async function handler(req: ReqLike, res: ResLike) {
 
     const amount = typeof body.amount === "number" ? body.amount : Number(body.amount);
     const email = typeof body.email === "string" ? body.email : "";
-    const currency =
-      typeof body.currency === "string" && body.currency
-        ? body.currency
-        : (process.env.PAYSTACK_CURRENCY || "USD");
+    const currencyFromBody = typeof body.currency === "string" ? body.currency.trim() : "";
+    const currencyFromEnv = typeof process.env.PAYSTACK_CURRENCY === "string" ? process.env.PAYSTACK_CURRENCY.trim() : "";
+    const currency = currencyFromBody || currencyFromEnv || undefined;
 
     if (!email || !email.includes("@")) {
       res.status(400).json({ error: "Invalid email" });
@@ -53,24 +52,29 @@ export default async function handler(req: ReqLike, res: ResLike) {
 
     const reference = `donation_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
+    const payload: Record<string, any> = {
+      email,
+      amount: Math.round(amount * 100),
+      reference,
+      callback_url: `${frontendUrl.replace(/\/$/, "")}/donate?reference=${encodeURIComponent(reference)}`,
+      metadata: {
+        donorName: typeof body.name === "string" ? body.name : undefined,
+        donorPhone: typeof body.phone === "string" ? body.phone : undefined,
+        isDonation: true,
+      },
+    };
+
+    if (currency) {
+      payload.currency = currency;
+    }
+
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${secretKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        email,
-        amount: Math.round(amount * 100),
-        currency,
-        reference,
-        callback_url: `${frontendUrl.replace(/\/$/, "")}/donate?reference=${encodeURIComponent(reference)}`,
-        metadata: {
-          donorName: typeof body.name === "string" ? body.name : undefined,
-          donorPhone: typeof body.phone === "string" ? body.phone : undefined,
-          isDonation: true,
-        },
-      }),
+      body: JSON.stringify(payload),
     });
 
     const paystackText = await paystackRes.text();

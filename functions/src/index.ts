@@ -12,6 +12,7 @@ import {onRequest} from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import express, {Request, Response} from "express";
 import {initializeApp as initializeAdminApp} from "firebase-admin/app";
+import * as admin from "firebase-admin";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 
 // Start writing functions
@@ -37,6 +38,38 @@ api.use(express.json({limit: "1mb"}));
 
 api.get("/health", (_req: Request, res: Response) => {
   res.status(200).json({ok: true});
+});
+
+api.post("/admin/grant", async (req: Request, res: Response) => {
+  try {
+    const adminKey = process.env.ADMIN_GRANT_KEY;
+    const providedKey = (req.header("x-admin-key") || "").trim();
+
+    if (!adminKey) {
+      res.status(500).json({error: "Missing ADMIN_GRANT_KEY"});
+      return;
+    }
+
+    if (!providedKey || providedKey !== adminKey) {
+      res.status(403).json({error: "Forbidden"});
+      return;
+    }
+
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    if (!email || !email.includes("@")) {
+      res.status(400).json({error: "Invalid email"});
+      return;
+    }
+
+    const auth = admin.auth();
+    const user = await auth.getUserByEmail(email);
+    await auth.setCustomUserClaims(user.uid, {admin: true});
+
+    res.status(200).json({ok: true, uid: user.uid, email});
+  } catch (err) {
+    logger.error("Failed to grant admin", err);
+    res.status(500).json({error: "Internal error"});
+  }
 });
 
 api.post("/donations", async (req: Request, res: Response) => {

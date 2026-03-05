@@ -1,28 +1,12 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-const STORAGE_KEY_ADMIN_USERS = "nca_admin_users";
-
-/** Stored admin account (created via Create Account on login page). */
-interface StoredAdmin {
-    email: string;
-    password: string;
-    name?: string;
-}
-
-function getStoredAdmins(): StoredAdmin[] {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY_ADMIN_USERS);
-        if (!raw) return [];
-        const parsed = JSON.parse(raw) as StoredAdmin[];
-        return Array.isArray(parsed) ? parsed : [];
-    } catch {
-        return [];
-    }
-}
-
-function saveStoredAdmins(admins: StoredAdmin[]) {
-    localStorage.setItem(STORAGE_KEY_ADMIN_USERS, JSON.stringify(admins));
-}
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import {
+    createUserWithEmailAndPassword,
+    getIdTokenResult,
+    onAuthStateChanged,
+    signInWithEmailAndPassword,
+    signOut,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -34,53 +18,57 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/** Built-in demo admin (fallback). */
-const DEMO_ADMIN = {
-    email: "admin@ncatwiceast.org",
-    password: "@Nyancitarialbeek143#",
-};
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState<{ email: string } | null>(null);
 
     useEffect(() => {
-        const storedAuth = localStorage.getItem("nca_admin_auth");
-        const storedUser = localStorage.getItem("nca_admin_user");
+        const unsub = onAuthStateChanged(auth, async (fbUser) => {
+            if (!fbUser?.email) {
+                setIsAuthenticated(false);
+                setUser(null);
+                return;
+            }
 
-        if (storedAuth === "true" && storedUser) {
-            setIsAuthenticated(true);
-            setUser(JSON.parse(storedUser));
-        }
+            try {
+                const token = await getIdTokenResult(fbUser, true);
+                const isAdmin = Boolean((token.claims as any)?.admin);
+                if (!isAdmin) {
+                    setIsAuthenticated(false);
+                    setUser(null);
+                    return;
+                }
+
+                setIsAuthenticated(true);
+                setUser({ email: fbUser.email.toLowerCase() });
+            } catch {
+                setIsAuthenticated(false);
+                setUser(null);
+            }
+        });
+
+        return () => unsub();
     }, []);
 
     const login = async (email: string, password: string): Promise<boolean> => {
         const normalizedEmail = email.trim().toLowerCase();
-        const pwd = password;
 
-        // 1) Check built-in demo admin
-        if (normalizedEmail === DEMO_ADMIN.email && pwd === DEMO_ADMIN.password) {
+        try {
+            const cred = await signInWithEmailAndPassword(auth, normalizedEmail, password);
+            const token = await getIdTokenResult(cred.user, true);
+            const isAdmin = Boolean((token.claims as any)?.admin);
+
+            if (!isAdmin) {
+                await signOut(auth);
+                return false;
+            }
+
             setIsAuthenticated(true);
             setUser({ email: normalizedEmail });
-            localStorage.setItem("nca_admin_auth", "true");
-            localStorage.setItem("nca_admin_user", JSON.stringify({ email: normalizedEmail }));
             return true;
+        } catch {
+            return false;
         }
-
-        // 2) Check admins created via "Create an account"
-        const admins = getStoredAdmins();
-        const match = admins.find(
-            (a) => a.email.trim().toLowerCase() === normalizedEmail && a.password === pwd
-        );
-        if (match) {
-            setIsAuthenticated(true);
-            setUser({ email: normalizedEmail });
-            localStorage.setItem("nca_admin_auth", "true");
-            localStorage.setItem("nca_admin_user", JSON.stringify({ email: normalizedEmail }));
-            return true;
-        }
-
-        return false;
     };
 
     const registerAdmin = async (
@@ -96,21 +84,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return { success: false, error: "Password must be at least 6 characters." };
         }
 
-        const admins = getStoredAdmins();
-        if (admins.some((a) => a.email.trim().toLowerCase() === normalizedEmail)) {
-            return { success: false, error: "An account with this email already exists." };
+        try {
+            await createUserWithEmailAndPassword(auth, normalizedEmail, password);
+            return { success: true };
+        } catch (e: any) {
+            const msg = typeof e?.message === "string" ? e.message : "Could not create account.";
+            return { success: false, error: msg };
         }
-
-        admins.push({ email: normalizedEmail, password, name });
-        saveStoredAdmins(admins);
-        return { success: true };
     };
 
     const logout = () => {
+        void signOut(auth);
         setIsAuthenticated(false);
         setUser(null);
-        localStorage.removeItem("nca_admin_auth");
-        localStorage.removeItem("nca_admin_user");
     };
 
     return (

@@ -30,7 +30,6 @@ const PaystackDonation = ({
           email,
           name,
           phone,
-          currency: "USD",
         }),
       });
 

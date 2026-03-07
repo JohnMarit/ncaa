@@ -3,6 +3,7 @@ import { upcomingEvents as staticUpcomingEvents, pastEvents as staticPastEvents 
 import type { UpcomingEvent, PastEvent } from "@/data/events";
 import { executiveCommittee as staticExecutive, payamRepresentatives as staticPayam } from "@/data/leadership";
 import type { ExecutiveCommitteeMember, PayamRepresentative } from "@/data/leadership";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
   deleteDoc,
@@ -305,14 +306,45 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [payamRepresentatives, setPayamRepresentatives] = useState<AdminPayamRepresentative[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [scholarships, setScholarships] = useState<AdminScholarship[]>([]);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setIsAdminUser(false);
+        return;
+      }
+      user
+        .getIdTokenResult()
+        .then((r) => {
+          setIsAdminUser(r?.claims?.admin === true);
+        })
+        .catch(() => {
+          setIsAdminUser(false);
+        });
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
 
   // Load from localStorage on mount (for non-Firestore-backed datasets)
   useEffect(() => {
     // Intentionally empty: all datasets are now Firestore-backed.
   }, []);
 
+  useEffect(() => {
+    if (isAdminUser) return;
+    setMembers([]);
+    setPayments([]);
+    setNotifications([]);
+    setNominations([]);
+  }, [isAdminUser]);
+
   // Firestore: members – real-time sync + one-time seed
   useEffect(() => {
+    if (!isAdminUser) return;
     const membersCol = collection(db, FIRESTORE_COLLECTIONS.members);
 
     const seedMembersIfEmpty = async () => {
@@ -338,22 +370,29 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     });
 
-    const unsub = onSnapshot(query(membersCol), (snap) => {
-      const loaded: Member[] = [];
-      snap.forEach((d) => {
-        const raw = d.data() as Omit<Member, "id">;
-        loaded.push({ id: d.id, ...raw });
-      });
-      setMembers(loaded);
-    });
+    const unsub = onSnapshot(
+      query(membersCol),
+      (snap) => {
+        const loaded: Member[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<Member, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        setMembers(loaded);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: payments – real-time sync + one-time seed
   useEffect(() => {
+    if (!isAdminUser) return;
     const paymentsCol = collection(db, FIRESTORE_COLLECTIONS.payments);
 
     const seedPaymentsIfEmpty = async () => {
@@ -379,22 +418,29 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     });
 
-    const unsub = onSnapshot(query(paymentsCol), (snap) => {
-      const loaded: Payment[] = [];
-      snap.forEach((d) => {
-        const raw = d.data() as Omit<Payment, "id">;
-        loaded.push({ id: d.id, ...raw });
-      });
-      setPayments(loaded);
-    });
+    const unsub = onSnapshot(
+      query(paymentsCol),
+      (snap) => {
+        const loaded: Payment[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<Payment, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        setPayments(loaded);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: notifications – real-time sync + one-time seed
   useEffect(() => {
+    if (!isAdminUser) return;
     const notificationsCol = collection(db, FIRESTORE_COLLECTIONS.notifications);
 
     const seedNotificationsIfEmpty = async () => {
@@ -420,19 +466,25 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     });
 
-    const unsub = onSnapshot(query(notificationsCol), (snap) => {
-      const loaded: AdminNotification[] = [];
-      snap.forEach((d) => {
-        const raw = d.data() as Omit<AdminNotification, "id">;
-        loaded.push({ id: d.id, ...raw });
-      });
-      setNotifications(loaded);
-    });
+    const unsub = onSnapshot(
+      query(notificationsCol),
+      (snap) => {
+        const loaded: AdminNotification[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<AdminNotification, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        setNotifications(loaded);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: elections – real-time sync + one-time seed
   useEffect(() => {
@@ -461,14 +513,20 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     });
 
-    const unsub = onSnapshot(query(electionsCol), (snap) => {
-      const loaded: Election[] = [];
-      snap.forEach((d) => {
-        const raw = d.data() as Omit<Election, "id">;
-        loaded.push({ id: d.id, ...raw });
-      });
-      setElections(loaded);
-    });
+    const unsub = onSnapshot(
+      query(electionsCol),
+      (snap) => {
+        const loaded: Election[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<Election, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        setElections(loaded);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsub();
@@ -477,6 +535,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
 
   // Firestore: nominations – real-time sync + one-time seed
   useEffect(() => {
+    if (!isAdminUser) return;
     const nominationsCol = collection(db, FIRESTORE_COLLECTIONS.nominations);
 
     const seedNominationsIfEmpty = async () => {
@@ -502,14 +561,20 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     });
 
-    const unsub = onSnapshot(query(nominationsCol), (snap) => {
-      const loaded: Nomination[] = [];
-      snap.forEach((d) => {
-        const raw = d.data() as Omit<Nomination, "id">;
-        loaded.push({ id: d.id, ...raw });
-      });
-      setNominations(loaded);
-    });
+    const unsub = onSnapshot(
+      query(nominationsCol),
+      (snap) => {
+        const loaded: Nomination[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<Nomination, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        setNominations(loaded);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsub();

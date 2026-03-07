@@ -308,6 +308,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [scholarships, setScholarships] = useState<AdminScholarship[]>([]);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
+  useEffect(() => {
+    const projectId = (db.app.options as { projectId?: string }).projectId;
+    console.info("AdminDataContext Firebase projectId", projectId);
+  }, []);
+
   const requireAdminSession = () => {
     if (!auth.currentUser) {
       throw new Error("You must be logged in as an admin to perform this action.");
@@ -627,8 +632,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       await Promise.all(seed.map((d) => setDoc(doc(db, FIRESTORE_COLLECTIONS.documents, d.id), d)));
     };
 
-    seedDocumentsIfEmpty().catch(() => {
-      // ignore
+    seedDocumentsIfEmpty().catch((err) => {
+      console.error("seedDocumentsIfEmpty failed", err);
     });
 
     const unsub = onSnapshot(
@@ -675,8 +680,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       await Promise.all(seed.map((s) => setDoc(doc(db, FIRESTORE_COLLECTIONS.scholarships, s.id), s)));
     };
 
-    seedScholarshipsIfEmpty().catch(() => {
-      // ignore
+    seedScholarshipsIfEmpty().catch((err) => {
+      console.error("seedScholarshipsIfEmpty failed", err);
     });
 
     const unsub = onSnapshot(
@@ -740,7 +745,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
 
     if (isAdminUser) {
       seedLeadershipIfMissing().catch(() => {
-        // ignore; subscriptions will still attempt to read.
+        console.error("seedLeadershipIfMissing failed");
       });
     }
 
@@ -805,8 +810,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       );
     };
 
-    seedEventsIfEmpty().catch(() => {
-      // ignore
+    seedEventsIfEmpty().catch((err) => {
+      console.error("seedEventsIfEmpty failed", err);
     });
 
     const unsub = onSnapshot(

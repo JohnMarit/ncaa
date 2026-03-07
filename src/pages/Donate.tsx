@@ -2,12 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Heart, CreditCard, Shield, CheckCircle, Gift } from "lucide-react";
+import { Heart, Shield, CheckCircle, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 
@@ -15,11 +14,10 @@ const Donate = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [amount, setAmount] = useState("");
-    const [donorName, setDonorName] = useState("");
     const [donorEmail, setDonorEmail] = useState("");
-    const [donorPhone, setDonorPhone] = useState("");
-    const [paymentMethod, setPaymentMethod] = useState("paystack");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [usdToKesRate, setUsdToKesRate] = useState<number | null>(null);
+    const [isRateLoading, setIsRateLoading] = useState(false);
     const { toast } = useToast();
     const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -49,9 +47,7 @@ const Donate = () => {
         }
 
         setAmount("");
-        setDonorName("");
         setDonorEmail("");
-        setDonorPhone("");
 
         toast({
             title: "Donation completed",
@@ -61,12 +57,37 @@ const Donate = () => {
         navigate("/");
     }, [location.pathname, location.search, navigate, toast]);
 
+    useEffect(() => {
+        let cancelled = false;
+        const loadRate = async () => {
+            setIsRateLoading(true);
+            try {
+                const resp = await fetch("https://open.er-api.com/v6/latest/USD");
+                const json = await resp.json().catch(() => null);
+                const rate = json?.rates?.KES;
+                if (!cancelled) {
+                    setUsdToKesRate(typeof rate === "number" && Number.isFinite(rate) ? rate : null);
+                }
+            } catch {
+                if (!cancelled) {
+                    setUsdToKesRate(null);
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsRateLoading(false);
+                }
+            }
+        };
+
+        loadRate();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     const initializePaystackAndRedirect = async (args: {
         amount: number;
         email: string;
-        name: string;
-        phone?: string;
-        currency: "USD";
     }) => {
         setIsProcessing(true);
         try {
@@ -132,7 +153,6 @@ const Donate = () => {
             return;
         }
 
-        // Validate email
         if (!donorEmail || !donorEmail.includes("@")) {
             toast({
                 title: "Invalid Email",
@@ -142,27 +162,10 @@ const Donate = () => {
             return;
         }
 
-        // Validate name
-        if (!donorName.trim()) {
-            toast({
-                title: "Name Required",
-                description: "Please enter your full name.",
-                variant: "destructive",
-            });
-            return;
-        }
-
-        // Handle Paystack payment
-        if (paymentMethod === "paystack") {
-            await initializePaystackAndRedirect({
-                amount: numericAmount,
-                email: donorEmail,
-                name: donorName,
-                phone: donorPhone || undefined,
-                currency: "USD",
-            });
-            return;
-        }
+        await initializePaystackAndRedirect({
+            amount: numericAmount,
+            email: donorEmail,
+        });
     };
 
     return (
@@ -216,7 +219,8 @@ const Donate = () => {
                                                             id="donationAmount"
                                                             ref={amountInputRef}
                                                             type="text"
-                                                            placeholder="Enter amount"
+                                                            inputMode="decimal"
+                                                            placeholder="Enter amount in USD"
                                                             value={amount}
                                                             onChange={(e) => {
                                                                 const value = e.target.value.replace(/[^\d.,]/g, "");
@@ -225,6 +229,22 @@ const Donate = () => {
                                                             required
                                                         />
                                                     </div>
+                                                    <div className="w-32 space-y-2">
+                                                        <Label>Currency</Label>
+                                                        <Input value="USD" disabled />
+                                                    </div>
+                                                </div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    {isRateLoading
+                                                        ? "Loading exchange rate..."
+                                                        : usdToKesRate
+                                                            ? (() => {
+                                                                const usd = parseFloat(amount.replace(/,/g, "")) || 0;
+                                                                const kes = usd * usdToKesRate;
+                                                                const rounded = Math.round(kes);
+                                                                return `Approx. KES ${rounded.toLocaleString()}`;
+                                                            })()
+                                                            : "KES estimate unavailable"}
                                                 </div>
                                             </div>
 
@@ -233,37 +253,15 @@ const Donate = () => {
                                             {/* Donor Information */}
                                             <div className="space-y-4">
                                                 <h3 className="font-semibold">Your Information</h3>
-                                                <div className="grid gap-4 md:grid-cols-2">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="donorName">Full Name *</Label>
-                                                        <Input
-                                                            id="donorName"
-                                                            placeholder="Your name"
-                                                            value={donorName}
-                                                            onChange={(e) => setDonorName(e.target.value)}
-                                                            required
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="donorEmail">Email *</Label>
-                                                        <Input
-                                                            id="donorEmail"
-                                                            type="email"
-                                                            placeholder="your.email@example.com"
-                                                            value={donorEmail}
-                                                            onChange={(e) => setDonorEmail(e.target.value)}
-                                                            required
-                                                        />
-                                                    </div>
-                                                </div>
                                                 <div className="space-y-2">
-                                                    <Label htmlFor="donorPhone">Phone Number</Label>
+                                                    <Label htmlFor="donorEmail">Email *</Label>
                                                     <Input
-                                                        id="donorPhone"
-                                                        type="tel"
-                                                        placeholder="+211 920 287 970"
-                                                        value={donorPhone}
-                                                        onChange={(e) => setDonorPhone(e.target.value)}
+                                                        id="donorEmail"
+                                                        type="email"
+                                                        placeholder="your.email@example.com"
+                                                        value={donorEmail}
+                                                        onChange={(e) => setDonorEmail(e.target.value)}
+                                                        required
                                                     />
                                                 </div>
                                             </div>
@@ -271,31 +269,10 @@ const Donate = () => {
                                             <Separator />
 
                                             {/* Payment Method */}
-                                            <div className="space-y-4">
-                                                <h3 className="font-semibold">Payment Method *</h3>
-                                                <RadioGroup value={paymentMethod} onValueChange={(value) => {
-                                                    setPaymentMethod(value);
-                                                }}>
-                                                    <div className="space-y-3">
-                                                        <div className="flex items-center space-x-2 rounded-lg border border-border bg-card p-4">
-                                                            <RadioGroupItem value="paystack" id="paystack" />
-                                                            <Label htmlFor="paystack" className="flex-1 cursor-pointer">
-                                                                <div className="flex items-center gap-2">
-                                                                    <CreditCard className="h-5 w-5" />
-                                                                    <span className="font-medium">Card</span>
-                                                                </div>
-                                                            </Label>
-                                                        </div>
-                                                    </div>
-                                                </RadioGroup>
-
-                                                {paymentMethod === "paystack" && (
-                                                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                                                        <p className="text-sm text-muted-foreground">
-                                                            You will be redirected to Paystack&apos;s secure checkout to complete your donation.
-                                                        </p>
-                                                    </div>
-                                                )}
+                                            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                                                <p className="text-sm text-muted-foreground">
+                                                    You will be redirected to Paystack&apos;s secure checkout to complete your donation.
+                                                </p>
                                             </div>
 
                                             {/* Submit Button */}

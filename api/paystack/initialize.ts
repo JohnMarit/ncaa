@@ -1,6 +1,6 @@
 type InitBody = {
   amount: number;
-  email: string;
+  email?: string;
   name?: string;
   phone?: string;
   currency?: string;
@@ -30,15 +30,17 @@ export default async function handler(req: ReqLike, res: ResLike) {
     }
 
     const frontendUrl = process.env.FRONTEND_URL || "https://www.ncaa.org.ss";
+    const defaultEmail = process.env.PAYSTACK_DEFAULT_EMAIL || "donations@ncaa.org.ss";
 
     const rawBody = req.body ?? {};
     const body = (typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody) as Partial<InitBody>;
 
     const amount = typeof body.amount === "number" ? body.amount : Number(body.amount);
-    const email = typeof body.email === "string" ? body.email : "";
+    const emailFromBody = typeof body.email === "string" ? body.email.trim() : "";
+    const email = emailFromBody || defaultEmail;
     const currencyFromBody = typeof body.currency === "string" ? body.currency.trim() : "";
     const currencyFromEnv = typeof process.env.PAYSTACK_CURRENCY === "string" ? process.env.PAYSTACK_CURRENCY.trim() : "";
-    const currency = currencyFromBody || currencyFromEnv || "USD";
+    const currency = currencyFromBody || currencyFromEnv || undefined;
 
     if (!email || !email.includes("@")) {
       res.status(400).json({ error: "Invalid email" });
@@ -50,52 +52,23 @@ export default async function handler(req: ReqLike, res: ResLike) {
       return;
     }
 
-    const chargeCurrencyFromEnv = typeof process.env.PAYSTACK_CHARGE_CURRENCY === "string" ? process.env.PAYSTACK_CHARGE_CURRENCY.trim() : "";
-    const chargeCurrency = chargeCurrencyFromEnv || "KES";
-
-    const usdToKesRateFromEnv = typeof process.env.USD_TO_KES_RATE === "string" ? process.env.USD_TO_KES_RATE.trim() : "";
-    const usdToKesRate = usdToKesRateFromEnv ? Number(usdToKesRateFromEnv) : NaN;
-
-    if (currency !== "USD") {
-      res.status(400).json({ error: "Donations must be entered in USD" });
-      return;
-    }
-
-    if (chargeCurrency !== "KES") {
-      res.status(500).json({ error: "Invalid PAYSTACK_CHARGE_CURRENCY (expected KES)" });
-      return;
-    }
-
-    if (!Number.isFinite(usdToKesRate) || usdToKesRate <= 0) {
-      res.status(500).json({ error: "Missing or invalid USD_TO_KES_RATE" });
-      return;
-    }
-
-    const amountKes = amount * usdToKesRate;
-    if (!Number.isFinite(amountKes) || amountKes <= 0) {
-      res.status(400).json({ error: "Invalid converted amount" });
-      return;
-    }
-
     const reference = `donation_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
     const payload: Record<string, any> = {
       email,
-      amount: Math.round(amountKes * 100),
+      amount: Math.round(amount * 100),
       reference,
       callback_url: `${frontendUrl.replace(/\/$/, "")}/donate?reference=${encodeURIComponent(reference)}`,
       metadata: {
         donorName: typeof body.name === "string" ? body.name : undefined,
         donorPhone: typeof body.phone === "string" ? body.phone : undefined,
         isDonation: true,
-        enteredAmount: amount,
-        enteredCurrency: "USD",
-        chargeCurrency: "KES",
-        chargeAmount: amountKes,
       },
     };
 
-    payload.currency = "KES";
+    if (currency) {
+      payload.currency = currency;
+    }
 
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",

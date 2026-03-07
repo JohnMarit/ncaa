@@ -129,7 +129,7 @@ const Events = () => {
         });
     }, [filteredEvents]);
 
-    const handleCreateEvent = (e: React.FormEvent) => {
+    const handleCreateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
         const err: Record<string, string> = {};
         if (!eventForm.title.trim()) err.title = "Event title is required.";
@@ -146,38 +146,46 @@ const Events = () => {
             });
             return;
         }
-        addEvent({
-            title: eventForm.title.trim(),
-            description: eventForm.description.trim(),
-            date: eventForm.date,
-            time: eventForm.time.trim(),
-            location: eventForm.location.trim(),
-            image: eventForm.image.trim() || undefined,
-            type: eventForm.type,
-            attendees: 0,
-            status: eventForm.type === "past" ? "completed" : "active",
-            pastMarkedAt: eventForm.type === "past" ? new Date().toISOString() : undefined,
-            published: eventForm.published,
-        });
-        toast({
-            title: "Event Created",
-            description: eventForm.published
-                ? "The event is live on the website."
-                : "The event is saved as a draft.",
-        });
-        setEventForm({
-            title: "",
-            description: "",
-            date: "",
-            time: "",
-            location: "",
-            image: "",
-            type: "upcoming",
-            published: true,
-        });
-        setFormErrors({});
-        if (createImageInputRef.current) createImageInputRef.current.value = "";
-        setIsCreateDialogOpen(false);
+        try {
+            await addEvent({
+                title: eventForm.title.trim(),
+                description: eventForm.description.trim(),
+                date: eventForm.date,
+                time: eventForm.time.trim(),
+                location: eventForm.location.trim(),
+                image: eventForm.image.trim() || undefined,
+                type: eventForm.type,
+                attendees: 0,
+                status: eventForm.type === "past" ? "completed" : "active",
+                pastMarkedAt: eventForm.type === "past" ? new Date().toISOString() : undefined,
+                published: eventForm.published,
+            });
+            toast({
+                title: "Event Created",
+                description: eventForm.published
+                    ? "The event is live on the website."
+                    : "The event is saved as a draft.",
+            });
+            setEventForm({
+                title: "",
+                description: "",
+                date: "",
+                time: "",
+                location: "",
+                image: "",
+                type: "upcoming",
+                published: true,
+            });
+            setFormErrors({});
+            if (createImageInputRef.current) createImageInputRef.current.value = "";
+            setIsCreateDialogOpen(false);
+        } catch (error) {
+            toast({
+                title: "Create failed",
+                description: error instanceof Error ? error.message : "Failed to create event.",
+                variant: "destructive",
+            });
+        }
     };
 
     /** Format date string for input[type=date] (YYYY-MM-DD). */
@@ -205,7 +213,7 @@ const Events = () => {
         setEditFormErrors({});
     };
 
-    const handleUpdateEvent = (e: React.FormEvent) => {
+    const handleUpdateEvent = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingEventId) return;
         const err: Record<string, string> = {};
@@ -223,43 +231,67 @@ const Events = () => {
             });
             return;
         }
-        updateEvent(editingEventId, {
-            title: eventForm.title.trim(),
-            description: eventForm.description.trim(),
-            date: eventForm.date,
-            time: eventForm.time.trim(),
-            location: eventForm.location.trim(),
-            image: eventForm.image.trim() || undefined,
-            type: eventForm.type,
-            status: eventForm.type === "past" ? "completed" : "active",
-            published: eventForm.published,
-        });
-        toast({
-            title: "Event Updated",
-            description: "Changes are saved and will reflect on the website.",
-        });
-        setEditingEventId(null);
+        try {
+            await updateEvent(editingEventId, {
+                title: eventForm.title.trim(),
+                description: eventForm.description.trim(),
+                date: eventForm.date,
+                time: eventForm.time.trim(),
+                location: eventForm.location.trim(),
+                image: eventForm.image.trim() || undefined,
+                type: eventForm.type,
+                status: eventForm.type === "past" ? "completed" : "active",
+                published: eventForm.published,
+            });
+            toast({
+                title: "Event Updated",
+                description: "Changes are saved and will reflect on the website.",
+            });
+            setEditingEventId(null);
+        } catch (error) {
+            toast({
+                title: "Update failed",
+                description: error instanceof Error ? error.message : "Failed to update event.",
+                variant: "destructive",
+            });
+        }
     };
 
-    const handleDelete = (id: string) => {
-        deleteEvent(id);
-        toast({
-            title: "Event Deleted",
-            description: "The event has been deleted.",
-        });
+    const handleDelete = async (id: string) => {
+        try {
+            await deleteEvent(id);
+            toast({
+                title: "Event Deleted",
+                description: "The event has been deleted.",
+            });
+        } catch (error) {
+            toast({
+                title: "Delete failed",
+                description: error instanceof Error ? error.message : "Failed to delete event.",
+                variant: "destructive",
+            });
+        }
     };
 
-    const toggleEventCategory = (event: AdminEvent) => {
+    const toggleEventCategory = async (event: AdminEvent) => {
         const nextType: "upcoming" | "past" = isUpcoming(event) ? "past" : "upcoming";
-        updateEvent(event.id, {
-            type: nextType,
-            status: nextType === "past" ? "completed" : "active",
-            pastMarkedAt: nextType === "past" ? new Date().toISOString() : undefined,
-        });
-        toast({
-            title: "Event Updated",
-            description: nextType === "past" ? "Event moved to Past events." : "Event moved to Upcoming events.",
-        });
+        try {
+            await updateEvent(event.id, {
+                type: nextType,
+                status: nextType === "past" ? "completed" : "active",
+                pastMarkedAt: nextType === "past" ? new Date().toISOString() : undefined,
+            });
+            toast({
+                title: "Event Category Updated",
+                description: `Event moved to ${nextType} events.`,
+            });
+        } catch (error) {
+            toast({
+                title: "Update failed",
+                description: error instanceof Error ? error.message : "Failed to update event.",
+                variant: "destructive",
+            });
+        }
     };
 
     return (

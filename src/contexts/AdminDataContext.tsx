@@ -167,15 +167,15 @@ interface AdminDataContextType {
   addDocument: (document: Omit<DocumentItem, "id" | "date">) => void;
   updateDocument: (id: string, updates: Partial<DocumentItem>) => void;
   deleteDocument: (id: string) => void;
-  addExecutiveMember: (member: Omit<AdminExecutiveMember, "id">) => void;
-  updateExecutiveMember: (id: string, updates: Partial<AdminExecutiveMember>) => void;
-  deleteExecutiveMember: (id: string) => void;
-  addPayamRepresentative: (rep: Omit<AdminPayamRepresentative, "id">) => void;
-  updatePayamRepresentative: (id: string, updates: Partial<AdminPayamRepresentative>) => void;
-  deletePayamRepresentative: (id: string) => void;
-  addEvent: (event: Omit<AdminEvent, "id">) => void;
-  updateEvent: (id: string, updates: Partial<AdminEvent>) => void;
-  deleteEvent: (id: string) => void;
+  addExecutiveMember: (member: Omit<AdminExecutiveMember, "id">) => Promise<void>;
+  updateExecutiveMember: (id: string, updates: Partial<AdminExecutiveMember>) => Promise<void>;
+  deleteExecutiveMember: (id: string) => Promise<void>;
+  addPayamRepresentative: (rep: Omit<AdminPayamRepresentative, "id">) => Promise<void>;
+  updatePayamRepresentative: (id: string, updates: Partial<AdminPayamRepresentative>) => Promise<void>;
+  deletePayamRepresentative: (id: string) => Promise<void>;
+  addEvent: (event: Omit<AdminEvent, "id">) => Promise<void>;
+  updateEvent: (id: string, updates: Partial<AdminEvent>) => Promise<void>;
+  deleteEvent: (id: string) => Promise<void>;
   addScholarship: (scholarship: Omit<AdminScholarship, "id">) => void;
   updateScholarship: (id: string, updates: Partial<AdminScholarship>) => void;
   deleteScholarship: (id: string) => void;
@@ -307,6 +307,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [scholarships, setScholarships] = useState<AdminScholarship[]>([]);
   const [isAdminUser, setIsAdminUser] = useState(false);
+
+  const requireAdminSession = () => {
+    if (!auth.currentUser) {
+      throw new Error("You must be logged in as an admin to perform this action.");
+    }
+    if (!isAdminUser) {
+      throw new Error("Admin permissions are not available yet. Please wait a moment and try again.");
+    }
+  };
 
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, (user) => {
@@ -1003,7 +1012,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.documents, id));
   };
 
-  const addExecutiveMember: AdminDataContextType["addExecutiveMember"] = (input) => {
+  const addExecutiveMember: AdminDataContextType["addExecutiveMember"] = async (input) => {
+    requireAdminSession();
     const member: AdminExecutiveMember = {
       id: crypto.randomUUID(),
       name: input.name,
@@ -1013,40 +1023,38 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       icon: input.icon,
       image: input.image,
     };
-    void (async () => {
-      const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
-      const snap = await getDoc(execRef);
-      const data = (snap.exists() ? (snap.data() as { items?: AdminExecutiveMember[] }) : {}) ?? {};
-      const items = Array.isArray(data.items) ? data.items : [];
-      await setDoc(execRef, { items: [member, ...items] });
-    })();
+
+    const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
+    const snap = await getDoc(execRef);
+    const data = (snap.exists() ? (snap.data() as { items?: AdminExecutiveMember[] }) : {}) ?? {};
+    const items = Array.isArray(data.items) ? data.items : [];
+    await setDoc(execRef, { items: [member, ...items] });
   };
 
-  const updateExecutiveMember = (id: string, updates: Partial<AdminExecutiveMember>) => {
-    void (async () => {
-      const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
-      const snap = await getDoc(execRef);
-      if (!snap.exists()) return;
-      const data = snap.data() as { items?: AdminExecutiveMember[] };
-      const items = Array.isArray(data.items) ? data.items : [];
-      const next = items.map((m) => (m.id === id ? { ...m, ...updates } : m));
-      await setDoc(execRef, { items: next });
-    })();
+  const updateExecutiveMember: AdminDataContextType["updateExecutiveMember"] = async (id, updates) => {
+    requireAdminSession();
+    const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
+    const snap = await getDoc(execRef);
+    if (!snap.exists()) return;
+    const data = snap.data() as { items?: AdminExecutiveMember[] };
+    const items = Array.isArray(data.items) ? data.items : [];
+    const next = items.map((m) => (m.id === id ? { ...m, ...updates } : m));
+    await setDoc(execRef, { items: next });
   };
 
-  const deleteExecutiveMember = (id: string) => {
-    void (async () => {
-      const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
-      const snap = await getDoc(execRef);
-      if (!snap.exists()) return;
-      const data = snap.data() as { items?: AdminExecutiveMember[] };
-      const items = Array.isArray(data.items) ? data.items : [];
-      const next = items.filter((m) => m.id !== id);
-      await setDoc(execRef, { items: next });
-    })();
+  const deleteExecutiveMember: AdminDataContextType["deleteExecutiveMember"] = async (id) => {
+    requireAdminSession();
+    const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
+    const snap = await getDoc(execRef);
+    if (!snap.exists()) return;
+    const data = snap.data() as { items?: AdminExecutiveMember[] };
+    const items = Array.isArray(data.items) ? data.items : [];
+    const next = items.filter((m) => m.id !== id);
+    await setDoc(execRef, { items: next });
   };
 
-  const addPayamRepresentative: AdminDataContextType["addPayamRepresentative"] = (input) => {
+  const addPayamRepresentative: AdminDataContextType["addPayamRepresentative"] = async (input) => {
+    requireAdminSession();
     const rep: AdminPayamRepresentative = {
       id: crypto.randomUUID(),
       name: input.name,
@@ -1054,40 +1062,38 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       ...(input.position !== undefined && { position: input.position }),
       ...(input.image !== undefined && { image: input.image }),
     };
-    void (async () => {
-      const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
-      const snap = await getDoc(payamRef);
-      const data = (snap.exists() ? (snap.data() as { items?: AdminPayamRepresentative[] }) : {}) ?? {};
-      const items = Array.isArray(data.items) ? data.items : [];
-      await setDoc(payamRef, { items: [rep, ...items] });
-    })();
+
+    const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
+    const snap = await getDoc(payamRef);
+    const data = (snap.exists() ? (snap.data() as { items?: AdminPayamRepresentative[] }) : {}) ?? {};
+    const items = Array.isArray(data.items) ? data.items : [];
+    await setDoc(payamRef, { items: [rep, ...items] });
   };
 
-  const updatePayamRepresentative = (id: string, updates: Partial<AdminPayamRepresentative>) => {
-    void (async () => {
-      const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
-      const snap = await getDoc(payamRef);
-      if (!snap.exists()) return;
-      const data = snap.data() as { items?: AdminPayamRepresentative[] };
-      const items = Array.isArray(data.items) ? data.items : [];
-      const next = items.map((r) => (r.id === id ? { ...r, ...updates } : r));
-      await setDoc(payamRef, { items: next });
-    })();
+  const updatePayamRepresentative: AdminDataContextType["updatePayamRepresentative"] = async (id, updates) => {
+    requireAdminSession();
+    const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
+    const snap = await getDoc(payamRef);
+    if (!snap.exists()) return;
+    const data = snap.data() as { items?: AdminPayamRepresentative[] };
+    const items = Array.isArray(data.items) ? data.items : [];
+    const next = items.map((r) => (r.id === id ? { ...r, ...updates } : r));
+    await setDoc(payamRef, { items: next });
   };
 
-  const deletePayamRepresentative = (id: string) => {
-    void (async () => {
-      const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
-      const snap = await getDoc(payamRef);
-      if (!snap.exists()) return;
-      const data = snap.data() as { items?: AdminPayamRepresentative[] };
-      const items = Array.isArray(data.items) ? data.items : [];
-      const next = items.filter((r) => r.id !== id);
-      await setDoc(payamRef, { items: next });
-    })();
+  const deletePayamRepresentative: AdminDataContextType["deletePayamRepresentative"] = async (id) => {
+    requireAdminSession();
+    const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
+    const snap = await getDoc(payamRef);
+    if (!snap.exists()) return;
+    const data = snap.data() as { items?: AdminPayamRepresentative[] };
+    const items = Array.isArray(data.items) ? data.items : [];
+    const next = items.filter((r) => r.id !== id);
+    await setDoc(payamRef, { items: next });
   };
 
-  const addEvent: AdminDataContextType["addEvent"] = (input) => {
+  const addEvent: AdminDataContextType["addEvent"] = async (input) => {
+    requireAdminSession();
     const eventDate = new Date(input.date);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1108,15 +1114,17 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       createdAt: new Date().toISOString(),
       published: input.published ?? true,
     };
-    void setDoc(doc(db, FIRESTORE_COLLECTIONS.events, event.id), event);
+    await setDoc(doc(db, FIRESTORE_COLLECTIONS.events, event.id), event);
   };
 
-  const updateEvent = (id: string, updates: Partial<AdminEvent>) => {
-    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.events, id), updates as Record<string, unknown>);
+  const updateEvent: AdminDataContextType["updateEvent"] = async (id, updates) => {
+    requireAdminSession();
+    await updateDoc(doc(db, FIRESTORE_COLLECTIONS.events, id), updates as Record<string, unknown>);
   };
 
-  const deleteEvent = (id: string) => {
-    void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.events, id));
+  const deleteEvent: AdminDataContextType["deleteEvent"] = async (id) => {
+    requireAdminSession();
+    await deleteDoc(doc(db, FIRESTORE_COLLECTIONS.events, id));
   };
 
   const addScholarship: AdminDataContextType["addScholarship"] = (input) => {

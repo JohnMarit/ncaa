@@ -121,7 +121,7 @@ const Leadership = () => {
         setIsEditDialogOpen(true);
     };
 
-    const handleSaveEdit = (e: React.FormEvent) => {
+    const handleSaveEdit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingMember) return;
 
@@ -134,18 +134,27 @@ const Leadership = () => {
                 });
                 return;
             }
-            updateExecutiveMember(editingMember.id, {
-                name: editForm.name,
-                position: normalizePosition(editForm.position),
-                description: editForm.description,
-                color: editForm.color,
-                icon: editForm.icon,
-                image: editForm.image.trim() || undefined,
-            });
-            toast({
-                title: "Member Updated",
-                description: "Executive committee member has been updated.",
-            });
+            try {
+                await updateExecutiveMember(editingMember.id, {
+                    name: editForm.name,
+                    position: normalizePosition(editForm.position),
+                    description: editForm.description,
+                    color: editForm.color,
+                    icon: editForm.icon,
+                    image: editForm.image.trim() || undefined,
+                });
+                toast({
+                    title: "Member Updated",
+                    description: "Executive committee member has been updated.",
+                });
+            } catch (error) {
+                toast({
+                    title: "Update failed",
+                    description: error instanceof Error ? error.message : "Failed to update member.",
+                    variant: "destructive",
+                });
+                return;
+            }
         } else {
             if (!editForm.name || !editForm.payam) {
                 toast({
@@ -155,32 +164,49 @@ const Leadership = () => {
                 });
                 return;
             }
-            updatePayamRepresentative(editingMember.id, {
-                name: editForm.name,
-                payam: editForm.payam,
-                position: editForm.position.trim() || undefined,
-                image: editForm.image.trim() || undefined,
-            });
-            toast({
-                title: "Representative Updated",
-                description: "Payam representative has been updated.",
-            });
+            try {
+                await updatePayamRepresentative(editingMember.id, {
+                    name: editForm.name,
+                    payam: editForm.payam,
+                    position: editForm.position.trim() || undefined,
+                    image: editForm.image.trim() || undefined,
+                });
+                toast({
+                    title: "Representative Updated",
+                    description: "Payam representative has been updated.",
+                });
+            } catch (error) {
+                toast({
+                    title: "Update failed",
+                    description: error instanceof Error ? error.message : "Failed to update representative.",
+                    variant: "destructive",
+                });
+                return;
+            }
         }
         setIsEditDialogOpen(false);
         setEditingMember(null);
     };
 
-    const handleDelete = (id: string, type: "executive" | "payam", name: string) => {
+    const handleDelete = async (id: string, type: "executive" | "payam", name: string) => {
         if (confirm(`Are you sure you want to remove ${name}?`)) {
-            if (type === "executive") {
-                deleteExecutiveMember(id);
-            } else {
-                deletePayamRepresentative(id);
+            try {
+                if (type === "executive") {
+                    await deleteExecutiveMember(id);
+                } else {
+                    await deletePayamRepresentative(id);
+                }
+                toast({
+                    title: "Leadership Member Removed",
+                    description: `${name} has been removed from ${type === "executive" ? "executive committee" : "payam representatives"}.`,
+                });
+            } catch (error) {
+                toast({
+                    title: "Delete failed",
+                    description: error instanceof Error ? error.message : "Failed to delete leadership member.",
+                    variant: "destructive",
+                });
             }
-            toast({
-                title: "Leadership Member Removed",
-                description: `${name} has been removed from ${type === "executive" ? "executive committee" : "payam representatives"}.`,
-            });
         }
     };
 
@@ -206,7 +232,7 @@ const Leadership = () => {
         });
     }, [executiveCommittee]);
 
-    const handleAdd = (e: React.FormEvent) => {
+    const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
         if (addForm.type === "executive") {
             if (!addForm.name || !addForm.position) {
@@ -217,18 +243,27 @@ const Leadership = () => {
                 });
                 return;
             }
-            addExecutiveMember({
-                name: addForm.name,
-                position: normalizePosition(addForm.position),
-                description: addForm.description,
-                color: addForm.color,
-                icon: addForm.icon,
-                image: addForm.image.trim() || undefined,
-            });
-            toast({
-                title: "Member Added",
-                description: `${addForm.name} has been added to executive committee.`,
-            });
+            try {
+                await addExecutiveMember({
+                    name: addForm.name,
+                    position: normalizePosition(addForm.position),
+                    description: addForm.description,
+                    color: addForm.color,
+                    icon: addForm.icon,
+                    image: addForm.image.trim() || undefined,
+                });
+                toast({
+                    title: "Member Added",
+                    description: `${addForm.name} has been added to executive committee.`,
+                });
+            } catch (error) {
+                toast({
+                    title: "Add failed",
+                    description: error instanceof Error ? error.message : "Failed to add member.",
+                    variant: "destructive",
+                });
+                return;
+            }
         } else {
             if (!addForm.name || !addForm.payam) {
                 toast({
@@ -238,16 +273,26 @@ const Leadership = () => {
                 });
                 return;
             }
-                                            addPayamRepresentative({
-                                                name: addForm.name,
-                                                payam: addForm.payam,
-                                                ...(addForm.position?.trim() && { position: addForm.position.trim() }),
-                                                ...(addForm.image?.trim() && { image: addForm.image.trim() }),
-                                            });
-            toast({
-                title: "Representative Added",
-                description: `${addForm.name} has been added to payam representatives.`,
-            });
+
+            try {
+                await addPayamRepresentative({
+                    name: addForm.name,
+                    payam: addForm.payam,
+                    ...(addForm.position?.trim() && { position: addForm.position.trim() }),
+                    ...(addForm.image?.trim() && { image: addForm.image.trim() }),
+                });
+                toast({
+                    title: "Representative Added",
+                    description: `${addForm.name} has been added to payam representatives.`,
+                });
+            } catch (error) {
+                toast({
+                    title: "Add failed",
+                    description: error instanceof Error ? error.message : "Failed to add representative.",
+                    variant: "destructive",
+                });
+                return;
+            }
         }
 
         setAddForm({

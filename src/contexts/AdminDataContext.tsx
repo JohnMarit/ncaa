@@ -267,11 +267,23 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         try {
           const parsed = JSON.parse(storedEvents) as AdminEvent[];
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const withStaticImages = parsed.map((e) => ({
-              ...e,
-              image: e.image || staticEventImages[e.title] || undefined,
-            }));
-            setEvents(withStaticImages);
+            const withUpdatedContent = parsed.map((e) => {
+              let updated = { ...e };
+              if (updated.title === "International Girls' Day") {
+                updated.title = "International Women's Day";
+              }
+              if (updated.description && updated.description.includes("International Girls' Day")) {
+                updated.description = updated.description.replace(/International Girls' Day/g, "International Women's Day");
+              }
+              if (updated.description && updated.description.includes("girls' achievements")) {
+                updated.description = updated.description.replace(/girls' achievements/g, "women's achievements");
+              }
+              return {
+                ...updated,
+                image: updated.image || staticEventImages[updated.title] || undefined,
+              };
+            });
+            setEvents(withUpdatedContent);
           } else {
             setEvents(seedEvents);
           }

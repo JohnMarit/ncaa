@@ -2,19 +2,61 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { executiveCommittee, payamRepresentatives } from "@/data/leadership";
 import { AvatarModal } from "@/components/ui/avatar-modal";
-import { useState } from "react";
-import { MapPin } from "lucide-react";
+import { useState, type ElementType } from "react";
+import { Crown, DollarSign, FileText, GraduationCap, Heart, Lightbulb, MapPin, Megaphone, Scale, Trophy, UserCircle, Users } from "lucide-react";
+import { useAdminData } from "@/contexts/AdminDataContext";
 
 // Single shared gradient for all leadership accents
 const leadershipGradient = "from-[hsl(278_42%_34%)] to-[hsl(276_46%_30%)]";
 
+const iconMap: Record<string, ElementType> = {
+    Crown,
+    UserCircle,
+    FileText,
+    DollarSign,
+    Users,
+    Megaphone,
+    Scale,
+    GraduationCap,
+    Heart,
+    Trophy,
+    Lightbulb,
+};
+
 const Leadership = () => {
+    const { executiveCommittee: adminExecutive, payamRepresentatives: adminPayam } = useAdminData();
     const [selectedMember, setSelectedMember] = useState<{
         image: string;
         name: string;
         position: string;
         description: string;
     } | null>(null);
+
+    const executive = adminExecutive.length > 0
+        ? adminExecutive.map((m) => {
+            const staticMatch = executiveCommittee.find((s) => s.name === m.name);
+            const Icon = m.icon && iconMap[m.icon] ? iconMap[m.icon] : staticMatch?.icon ?? UserCircle;
+            return {
+                name: m.name,
+                position: m.position,
+                description: m.description,
+                icon: Icon,
+                image: m.image ?? staticMatch?.image,
+            };
+        })
+        : executiveCommittee;
+
+    const council = adminPayam.length > 0
+        ? adminPayam.map((r) => {
+            const staticMatch = payamRepresentatives.find((s) => s.payam === r.payam);
+            return {
+                name: r.name ?? staticMatch?.name ?? "",
+                payam: r.payam,
+                position: r.position ?? staticMatch?.position,
+                image: r.image ?? staticMatch?.image,
+            };
+        })
+        : payamRepresentatives;
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -49,8 +91,8 @@ const Leadership = () => {
 
                         {/* Chairlady - Featured at Top */}
                         {(() => {
-                            const chairperson = executiveCommittee.find(m => m.position === "Chairlady");
-                            const otherMembers = executiveCommittee.filter(m => m.position !== "Chairlady");
+                            const chairperson = executive.find(m => m.position === "Chairlady");
+                            const otherMembers = executive.filter(m => m.position !== "Chairlady");
                             
                             if (!chairperson) return null;
                             
@@ -186,7 +228,7 @@ const Leadership = () => {
                             </div>
 
                             <div className="grid gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
-                                {payamRepresentatives.map((rep, index) => (
+                                {council.map((rep, index) => (
                                     <div
                                         key={index}
                                         className="group relative overflow-hidden rounded-xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md"

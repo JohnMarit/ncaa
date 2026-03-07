@@ -9,6 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import type { AdminEvent } from "@/contexts/AdminDataContext";
 import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import {
     Table,
     TableBody,
     TableCell,
@@ -38,6 +45,8 @@ function startOfToday(): Date {
 
 /** Derive upcoming vs past from date only (dynamic, no manual toggle). */
 function isUpcoming(event: AdminEvent): boolean {
+    if (event.type === "upcoming") return true;
+    if (event.type === "past") return false;
     const eventDate = new Date(event.date);
     eventDate.setHours(0, 0, 0, 0);
     return eventDate >= startOfToday();
@@ -56,6 +65,7 @@ const Events = () => {
         time: "",
         location: "",
         image: "",
+        type: "upcoming" as "upcoming" | "past",
         published: true,
     });
     const [editingEventId, setEditingEventId] = useState<string | null>(null);
@@ -110,8 +120,8 @@ const Events = () => {
             aDate.setHours(0, 0, 0, 0);
             const bDate = new Date(b.date);
             bDate.setHours(0, 0, 0, 0);
-            const aUpcoming = aDate >= today;
-            const bUpcoming = bDate >= today;
+            const aUpcoming = a.type ? a.type === "upcoming" : aDate >= today;
+            const bUpcoming = b.type ? b.type === "upcoming" : bDate >= today;
             if (aUpcoming && !bUpcoming) return -1;
             if (!aUpcoming && bUpcoming) return 1;
             if (aUpcoming && bUpcoming) return aDate.getTime() - bDate.getTime();
@@ -143,9 +153,9 @@ const Events = () => {
             time: eventForm.time.trim(),
             location: eventForm.location.trim(),
             image: eventForm.image.trim() || undefined,
-            type: "upcoming",
+            type: eventForm.type,
             attendees: 0,
-            status: "active",
+            status: eventForm.type === "past" ? "completed" : "active",
             published: eventForm.published,
         });
         toast({
@@ -161,6 +171,7 @@ const Events = () => {
             time: "",
             location: "",
             image: "",
+            type: "upcoming",
             published: true,
         });
         setFormErrors({});
@@ -186,6 +197,7 @@ const Events = () => {
             time: event.time || "",
             location: event.location,
             image: event.image || "",
+            type: event.type ?? (isUpcoming(event) ? "upcoming" : "past"),
             published: event.published !== false,
         });
         setEditingEventId(event.id);
@@ -217,6 +229,8 @@ const Events = () => {
             time: eventForm.time.trim(),
             location: eventForm.location.trim(),
             image: eventForm.image.trim() || undefined,
+            type: eventForm.type,
+            status: eventForm.type === "past" ? "completed" : "active",
             published: eventForm.published,
         });
         toast({
@@ -231,6 +245,18 @@ const Events = () => {
         toast({
             title: "Event Deleted",
             description: "The event has been deleted.",
+        });
+    };
+
+    const toggleEventCategory = (event: AdminEvent) => {
+        const nextType: "upcoming" | "past" = isUpcoming(event) ? "past" : "upcoming";
+        updateEvent(event.id, {
+            type: nextType,
+            status: nextType === "past" ? "completed" : "active",
+        });
+        toast({
+            title: "Event Updated",
+            description: nextType === "past" ? "Event moved to Past events." : "Event moved to Upcoming events.",
         });
     };
 
@@ -310,6 +336,21 @@ const Events = () => {
                                                 <p className="text-sm text-destructive">{formErrors.time}</p>
                                             )}
                                         </div>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Category *</Label>
+                                        <Select
+                                            value={eventForm.type}
+                                            onValueChange={(value) => setEventForm({ ...eventForm, type: value as "upcoming" | "past" })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="upcoming">Upcoming</SelectItem>
+                                                <SelectItem value="past">Past</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="location">Event Location *</Label>
@@ -450,6 +491,21 @@ const Events = () => {
                                         </div>
                                     </div>
                                     <div className="grid gap-2">
+                                        <Label>Category *</Label>
+                                        <Select
+                                            value={eventForm.type}
+                                            onValueChange={(value) => setEventForm({ ...eventForm, type: value as "upcoming" | "past" })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="upcoming">Upcoming</SelectItem>
+                                                <SelectItem value="past">Past</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-2">
                                         <Label htmlFor="edit-location">Event Location *</Label>
                                         <Input
                                             id="edit-location"
@@ -541,7 +597,7 @@ const Events = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle>Events</CardTitle>
-                        <CardDescription>Upcoming / Past is determined automatically by event date.</CardDescription>
+                        <CardDescription>Use Category to control whether an event appears as Upcoming or Past.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <div className="overflow-x-auto">
@@ -597,6 +653,14 @@ const Events = () => {
                                                 </TableCell>
                                                 <TableCell>
                                                     <div className="flex items-center gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="h-8 px-2"
+                                                            onClick={() => toggleEventCategory(event)}
+                                                        >
+                                                            {isUpcoming(event) ? "Mark Past" : "Mark Upcoming"}
+                                                        </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="ghost"

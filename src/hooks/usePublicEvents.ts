@@ -37,12 +37,19 @@ export function usePublicEvents(): {
     const upcoming: AdminEvent[] = [];
     const past: AdminEvent[] = [];
     for (const e of published) {
-      const eventDate = parseEventDate(e.date);
-      if (eventDate >= today) {
+      // Prefer admin-controlled type when present; fall back to date-derived category.
+      if (e.type === "upcoming") {
         upcoming.push(e);
-      } else {
-        past.push(e);
+        continue;
       }
+      if (e.type === "past") {
+        past.push(e);
+        continue;
+      }
+
+      const eventDate = parseEventDate(e.date);
+      if (eventDate >= today) upcoming.push(e);
+      else past.push(e);
     }
     upcoming.sort((a, b) => parseEventDate(a.date).getTime() - parseEventDate(b.date).getTime());
     past.sort((a, b) => parseEventDate(b.date).getTime() - parseEventDate(a.date).getTime());

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type ElementType } from "react";
 import { Crown, Plus, Edit, Trash2, MapPin, UserCircle, FileText, DollarSign, Users, Megaphone, Scale, GraduationCap, Heart, Trophy, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ const POSITION_ORDER = [
     "Advisor",
 ];
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap: Record<string, ElementType> = {
     Crown,
     UserCircle,
     FileText,
@@ -110,6 +110,8 @@ const Leadership = () => {
         type: "executive" as "executive" | "payam",
         payam: "",
         color: "from-[hsl(var(--brand-primary-500))] to-[hsl(var(--brand-secondary-500))]",
+        icon: "UserCircle",
+        image: "",
     });
     const [editForm, setEditForm] = useState({
         name: "",
@@ -117,6 +119,8 @@ const Leadership = () => {
         description: "",
         payam: "",
         color: "from-[hsl(var(--brand-primary-500))] to-[hsl(var(--brand-secondary-500))]",
+        icon: "UserCircle",
+        image: "",
     });
 
     const handleEdit = (id: string, type: "executive" | "payam") => {
@@ -130,6 +134,8 @@ const Leadership = () => {
                     description: member.description,
                     payam: "",
                     color: member.color,
+                    icon: member.icon ?? "UserCircle",
+                    image: member.image ?? "",
                 });
             }
         } else {
@@ -142,6 +148,8 @@ const Leadership = () => {
                     description: "",
                     payam: rep.payam,
                     color: "",
+                    icon: "UserCircle",
+                    image: rep.image ?? staticRep?.image ?? "",
                 });
             }
         }
@@ -166,6 +174,8 @@ const Leadership = () => {
                 position: normalizePosition(editForm.position),
                 description: editForm.description,
                 color: editForm.color,
+                icon: editForm.icon,
+                image: editForm.image.trim() || undefined,
             });
             toast({
                 title: "Member Updated",
@@ -184,6 +194,7 @@ const Leadership = () => {
                 name: editForm.name,
                 payam: editForm.payam,
                 position: editForm.position.trim() || undefined,
+                image: editForm.image.trim() || undefined,
             });
             toast({
                 title: "Representative Updated",
@@ -246,6 +257,8 @@ const Leadership = () => {
                 position: normalizePosition(addForm.position),
                 description: addForm.description,
                 color: addForm.color,
+                icon: addForm.icon,
+                image: addForm.image.trim() || undefined,
             });
             toast({
                 title: "Member Added",
@@ -264,6 +277,7 @@ const Leadership = () => {
                                                 name: addForm.name,
                                                 payam: addForm.payam,
                                                 ...(addForm.position?.trim() && { position: addForm.position.trim() }),
+                                                ...(addForm.image?.trim() && { image: addForm.image.trim() }),
                                             });
             toast({
                 title: "Representative Added",
@@ -278,6 +292,8 @@ const Leadership = () => {
             type: "executive",
             payam: "",
             color: "from-[hsl(var(--brand-primary-500))] to-[hsl(var(--brand-secondary-500))]",
+            icon: "UserCircle",
+            image: "",
         });
         setIsAddDialogOpen(false);
     };
@@ -341,6 +357,29 @@ const Leadership = () => {
                                                 />
                                             </div>
                                             <div className="grid gap-2">
+                                                <Label htmlFor="icon">Icon</Label>
+                                                <select
+                                                    id="icon"
+                                                    title="Icon"
+                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                    value={addForm.icon}
+                                                    onChange={(e) => setAddForm({ ...addForm, icon: e.target.value })}
+                                                >
+                                                    {Object.keys(iconMap).map((k) => (
+                                                        <option key={k} value={k}>{k}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="image">Image URL (optional)</Label>
+                                                <Input
+                                                    id="image"
+                                                    placeholder="https://..."
+                                                    value={addForm.image}
+                                                    onChange={(e) => setAddForm({ ...addForm, image: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
                                                 <Label htmlFor="description">Description</Label>
                                                 <Textarea
                                                     id="description"
@@ -369,6 +408,15 @@ const Leadership = () => {
                                                     placeholder="e.g., Chairlady of Kongor First Class"
                                                     value={addForm.position}
                                                     onChange={(e) => setAddForm({ ...addForm, position: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="payamImage">Image URL (optional)</Label>
+                                                <Input
+                                                    id="payamImage"
+                                                    placeholder="https://..."
+                                                    value={addForm.image}
+                                                    onChange={(e) => setAddForm({ ...addForm, image: e.target.value })}
                                                 />
                                             </div>
                                         </>
@@ -545,6 +593,29 @@ const Leadership = () => {
                                             />
                                         </div>
                                         <div className="grid gap-2">
+                                            <Label htmlFor="editIcon">Icon</Label>
+                                            <select
+                                                id="editIcon"
+                                                title="Icon"
+                                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                                value={editForm.icon}
+                                                onChange={(e) => setEditForm({ ...editForm, icon: e.target.value })}
+                                            >
+                                                {Object.keys(iconMap).map((k) => (
+                                                    <option key={k} value={k}>{k}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="editImage">Image URL (optional)</Label>
+                                            <Input
+                                                id="editImage"
+                                                placeholder="https://..."
+                                                value={editForm.image}
+                                                onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
                                             <Label htmlFor="editDescription">Description</Label>
                                             <Textarea
                                                 id="editDescription"
@@ -592,6 +663,15 @@ const Leadership = () => {
                                                 placeholder="e.g., Chairlady of Kongor First Class"
                                                 value={editForm.position}
                                                 onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="editPayamImage">Image URL (optional)</Label>
+                                            <Input
+                                                id="editPayamImage"
+                                                placeholder="https://..."
+                                                value={editForm.image}
+                                                onChange={(e) => setEditForm({ ...editForm, image: e.target.value })}
                                             />
                                         </div>
                                     </>

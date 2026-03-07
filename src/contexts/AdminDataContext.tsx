@@ -560,7 +560,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     eventDate.setHours(0, 0, 0, 0);
-    const type: "upcoming" | "past" = eventDate >= today ? "upcoming" : "past";
+    const dateDerivedType: "upcoming" | "past" = eventDate >= today ? "upcoming" : "past";
+    const type: "upcoming" | "past" = input.type ?? dateDerivedType;
     const event: AdminEvent = {
       id: crypto.randomUUID(),
       title: input.title,
@@ -570,7 +571,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       location: input.location,
       type,
       attendees: input.attendees ?? 0,
-      status: input.status ?? "active",
+      status: input.status ?? (type === "past" ? "completed" : "active"),
       image: input.image,
       createdAt: new Date().toISOString(),
       published: input.published ?? true,

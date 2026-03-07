@@ -89,80 +89,67 @@ const Leadership = () => {
                             </p>
                         </div>
 
-                        {/* Chairlady - Featured at Top */}
+                        {/* Featured leader (first in admin-defined order) */}
                         {(() => {
-                            const chairperson = executive.find(m => m.position === "Chairlady");
-                            const otherMembers = executive.filter(m => m.position !== "Chairlady");
-                            
-                            if (!chairperson) return null;
-                            
-                            const ChairladyIcon = chairperson.icon;
-                            
+                            if (executive.length === 0) return null;
+
+                            const featured = executive[0];
+                            const otherMembers = executive.slice(1);
+                            const FeaturedIcon = featured.icon;
+
                             return (
                                 <>
                                     <div className="mb-8 flex justify-center md:mb-12">
                                         <div className="group relative w-full max-w-xs overflow-hidden rounded-xl bg-gradient-to-br from-background to-muted/30 shadow-lg transition-all duration-300 md:max-w-md md:rounded-2xl md:shadow-xl md:hover:shadow-2xl">
-                                            {/* Gradient overlay */}
                                             <div className={`absolute inset-0 bg-gradient-to-br ${leadershipGradient} opacity-5 transition-opacity duration-300 group-hover:opacity-10`} />
 
-                                            {/* Cover Image - same on all screen sizes */}
-                                            {chairperson.image ? (
+                                            {featured.image ? (
                                                 <button
                                                     onClick={() => setSelectedMember({
-                                                        image: chairperson.image!,
-                                                        name: chairperson.name,
-                                                        position: chairperson.position,
-                                                        description: chairperson.description
+                                                        image: featured.image!,
+                                                        name: featured.name,
+                                                        position: featured.position,
+                                                        description: featured.description
                                                     })}
                                                     className="relative w-full h-64 overflow-hidden rounded-t-2xl bg-muted transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center lg:h-72"
-                                                    aria-label={`View larger image of ${chairperson.name}`}
+                                                    aria-label={`View larger image of ${featured.name}`}
                                                 >
                                                     <img
-                                                        src={chairperson.image}
-                                                        alt={chairperson.name}
+                                                        src={featured.image}
+                                                        alt={featured.name}
                                                         className="h-full w-full object-cover object-top"
-                                                        loading="eager"
                                                     />
                                                 </button>
                                             ) : (
                                                 <div className={`flex w-full h-64 items-center justify-center bg-gradient-to-br ${leadershipGradient} rounded-t-2xl lg:h-72`}>
-                                                    <ChairladyIcon className="h-20 w-20 text-white" />
+                                                    <FeaturedIcon className="h-16 w-16 text-white" />
                                                 </div>
                                             )}
 
-                                            {/* Content */}
-                                            <div className="relative flex flex-col items-center text-center p-5 md:p-6 lg:p-8">
-                                                {/* Name */}
-                                                <h3 className="mb-2 font-heading text-xl font-bold md:mb-3 md:text-2xl lg:text-3xl">
-                                                    {chairperson.name}
+                                            <div className="relative p-6 text-center">
+                                                <h3 className="mb-2 font-heading text-2xl font-bold">
+                                                    {featured.name}
                                                 </h3>
-
-                                                {/* Position */}
-                                                <p className={`mb-3 text-base font-semibold bg-gradient-to-r ${leadershipGradient} bg-clip-text text-transparent md:mb-4 md:text-lg`}>
-                                                    {chairperson.position}
+                                                <p className={`mb-3 text-base font-semibold bg-gradient-to-r ${leadershipGradient} bg-clip-text text-transparent`}>
+                                                    {featured.position}
                                                 </p>
-
-                                                {/* Description */}
-                                                <p className="text-sm text-muted-foreground md:text-base">
-                                                    {chairperson.description}
+                                                <p className="text-sm text-muted-foreground">
+                                                    {featured.description}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Other Executive Committee Members */}
-                                    <div className="space-y-6 md:grid md:gap-6 md:space-y-0 md:grid-cols-2 lg:grid-cols-4">
+                                    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                         {otherMembers.map((member, index) => {
                                             const Icon = member.icon;
                                             return (
                                                 <div
                                                     key={index}
-                                                    className="group relative mx-auto w-full max-w-xs overflow-hidden rounded-xl bg-gradient-to-br from-background to-muted/30 shadow-lg transition-all duration-300 md:max-w-none md:rounded-xl md:shadow-lg md:hover:-translate-y-1 md:hover:shadow-xl flex flex-col"
+                                                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-background to-muted/30 shadow-lg transition-all duration-300 md:hover:-translate-y-1 md:hover:shadow-xl"
                                                 >
-                                                    {/* Gradient overlay */}
                                                     <div className={`absolute inset-0 bg-gradient-to-br ${leadershipGradient} opacity-0 transition-opacity duration-300 group-hover:opacity-10`} />
 
-                                                    {/* Cover Image - same on all screen sizes */}
                                                     {member.image ? (
                                                         <button
                                                             onClick={() => setSelectedMember({
@@ -171,35 +158,29 @@ const Leadership = () => {
                                                                 position: member.position,
                                                                 description: member.description
                                                             })}
-                                                            className="relative w-full h-56 overflow-hidden transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 lg:h-64"
+                                                            className="relative w-full h-56 overflow-hidden bg-muted transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                                                             aria-label={`View larger image of ${member.name}`}
                                                         >
                                                             <img
                                                                 src={member.image}
                                                                 alt={member.name}
-                                                                className={`h-full w-full ${member.position === "Deputy Chairlady" || member.position === "Secretary General" ? "object-cover object-top" : "object-cover"}`}
+                                                                className={`h-full w-full ${member.position === "Chairlady" || member.position === "Deputy Chairlady" || member.position === "Secretary General" ? "object-cover object-top" : "object-cover"}`}
                                                             />
                                                         </button>
                                                     ) : (
-                                                        <div className={`flex w-full h-56 items-center justify-center bg-gradient-to-br ${leadershipGradient} lg:h-64`}>
+                                                        <div className={`flex w-full h-56 items-center justify-center bg-gradient-to-br ${leadershipGradient}`}>
                                                             <Icon className="h-12 w-12 text-white" />
                                                         </div>
                                                     )}
 
-                                                    {/* Content */}
-                                                    <div className="relative flex flex-col items-center text-center p-4 flex-1 md:p-4 lg:p-6">
-                                                        {/* Name */}
-                                                        <h3 className="mb-2 font-heading text-lg font-bold md:mb-2 md:text-lg lg:text-xl">
+                                                    <div className="relative p-6 text-center">
+                                                        <h3 className="mb-2 font-heading text-xl font-bold">
                                                             {member.name}
                                                         </h3>
-
-                                                        {/* Position */}
-                                                        <p className={`mb-2 text-sm font-semibold bg-gradient-to-r ${leadershipGradient} bg-clip-text text-transparent md:mb-2 md:text-sm lg:mb-3 lg:text-base`}>
+                                                        <p className={`mb-3 text-sm font-semibold bg-gradient-to-r ${leadershipGradient} bg-clip-text text-transparent`}>
                                                             {member.position}
                                                         </p>
-
-                                                        {/* Description */}
-                                                        <p className="text-xs text-muted-foreground md:text-sm">
+                                                        <p className="text-sm text-muted-foreground">
                                                             {member.description}
                                                         </p>
                                                     </div>

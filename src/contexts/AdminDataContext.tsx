@@ -172,9 +172,11 @@ interface AdminDataContextType {
   addExecutiveMember: (member: Omit<AdminExecutiveMember, "id">) => Promise<void>;
   updateExecutiveMember: (id: string, updates: Partial<AdminExecutiveMember>) => Promise<void>;
   deleteExecutiveMember: (id: string) => Promise<void>;
+  reorderExecutiveCommittee: (nextItems: AdminExecutiveMember[]) => Promise<void>;
   addPayamRepresentative: (rep: Omit<AdminPayamRepresentative, "id">) => Promise<void>;
   updatePayamRepresentative: (id: string, updates: Partial<AdminPayamRepresentative>) => Promise<void>;
   deletePayamRepresentative: (id: string) => Promise<void>;
+  reorderPayamRepresentatives: (nextItems: AdminPayamRepresentative[]) => Promise<void>;
   addEvent: (event: Omit<AdminEvent, "id">) => Promise<void>;
   updateEvent: (id: string, updates: Partial<AdminEvent>) => Promise<void>;
   deleteEvent: (id: string) => Promise<void>;
@@ -1116,6 +1118,12 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     await setDoc(execRef, { items: next });
   };
 
+  const reorderExecutiveCommittee: AdminDataContextType["reorderExecutiveCommittee"] = async (nextItems) => {
+    requireAdminSession();
+    const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
+    await setDoc(execRef, { items: nextItems });
+  };
+
   const addPayamRepresentative: AdminDataContextType["addPayamRepresentative"] = async (input) => {
     requireAdminSession();
     const rep: AdminPayamRepresentative = {
@@ -1153,6 +1161,12 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const items = Array.isArray(data.items) ? data.items : [];
     const next = items.filter((r) => r.id !== id);
     await setDoc(payamRef, { items: next });
+  };
+
+  const reorderPayamRepresentatives: AdminDataContextType["reorderPayamRepresentatives"] = async (nextItems) => {
+    requireAdminSession();
+    const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
+    await setDoc(payamRef, { items: nextItems });
   };
 
   const addEvent: AdminDataContextType["addEvent"] = async (input) => {
@@ -1269,9 +1283,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         addExecutiveMember,
         updateExecutiveMember,
         deleteExecutiveMember,
+        reorderExecutiveCommittee,
         addPayamRepresentative,
         updatePayamRepresentative,
         deletePayamRepresentative,
+        reorderPayamRepresentatives,
         addEvent,
         updateEvent,
         deleteEvent,

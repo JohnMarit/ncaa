@@ -54,21 +54,7 @@ export const LeadershipPreview = () => {
         })
         : executiveCommittee;
 
-    const normalizePosition = (p: string) => p.trim().toLowerCase();
-    const desiredPositions = ["chairlady", "deputy chairlady", "secretary", "secretary general"];
-
-    const selected = desiredPositions
-        .map((pos) =>
-            leadersSource.find((m) => {
-                const actual = normalizePosition(m.position);
-                return actual === pos || (pos === "secretary" && actual.startsWith("secretary"));
-            })
-        )
-        .filter(Boolean) as typeof leadersSource;
-
-    const selectedNames = new Set(selected.map((m) => m.name));
-    const fill = leadersSource.filter((m) => !selectedNames.has(m.name));
-    const topThreeLeaders = [...selected, ...fill].slice(0, 3);
+    const topThreeLeaders = leadersSource.slice(0, 3);
     const [selectedMember, setSelectedMember] = useState<{
         image: string;
         name: string;

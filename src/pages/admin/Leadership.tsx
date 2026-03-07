@@ -1,5 +1,5 @@
-import { useState, useMemo, type ElementType } from "react";
-import { Crown, Plus, Edit, Trash2, MapPin, UserCircle, FileText, DollarSign, Users, Megaphone, Scale, GraduationCap, Heart, Trophy, Lightbulb } from "lucide-react";
+import { useState, type ElementType } from "react";
+import { Crown, Plus, Edit, Trash2, MapPin, UserCircle, FileText, DollarSign, Users, Megaphone, Scale, GraduationCap, Heart, Trophy, Lightbulb, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,23 +21,6 @@ import {
 } from "@/components/ui/dialog";
 
 /** Order from most superior (Chairlady) to least for admin display. */
-const POSITION_ORDER = [
-    "Chairlady",
-    "Deputy Chairlady",
-    "Secretary General",
-    "Deputy Secretary General",
-    "Finance Secretary",
-    "Deputy Finance Secretary",
-    "Information Secretary",
-    "Deputy Information Secretary",
-    "Secretary for Internal and External Affairs",
-    "Secretary for Legal Affairs",
-    "Secretary for Education",
-    "Secretary for Health",
-    "Secretary for Culture and Sports",
-    "Advisor",
-];
-
 const iconMap: Record<string, ElementType> = {
     Crown,
     UserCircle,
@@ -60,9 +43,11 @@ const Leadership = () => {
         addExecutiveMember,
         updateExecutiveMember,
         deleteExecutiveMember,
+        reorderExecutiveCommittee,
         addPayamRepresentative,
         updatePayamRepresentative,
         deletePayamRepresentative,
+        reorderPayamRepresentatives,
     } = useAdminData();
 
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -219,18 +204,27 @@ const Leadership = () => {
     };
     const displayPosition = (position: string) => normalizePosition(position);
 
-    // Sort executive committee: Chairlady first, then by POSITION_ORDER
-    const sortedExecutiveCommittee = useMemo(() => {
-        return [...executiveCommittee].sort((a, b) => {
-            const posA = displayPosition(a.position);
-            const posB = displayPosition(b.position);
-            const i = POSITION_ORDER.indexOf(posA);
-            const j = POSITION_ORDER.indexOf(posB);
-            const rankA = i === -1 ? POSITION_ORDER.length : i;
-            const rankB = j === -1 ? POSITION_ORDER.length : j;
-            return rankA - rankB;
-        });
-    }, [executiveCommittee]);
+    const moveExec = async (id: string, dir: -1 | 1) => {
+        const index = executiveCommittee.findIndex((m) => m.id === id);
+        if (index === -1) return;
+        const nextIndex = index + dir;
+        if (nextIndex < 0 || nextIndex >= executiveCommittee.length) return;
+        const next = [...executiveCommittee];
+        const [item] = next.splice(index, 1);
+        next.splice(nextIndex, 0, item);
+        await reorderExecutiveCommittee(next);
+    };
+
+    const movePayam = async (id: string, dir: -1 | 1) => {
+        const index = payamRepresentatives.findIndex((r) => r.id === id);
+        if (index === -1) return;
+        const nextIndex = index + dir;
+        if (nextIndex < 0 || nextIndex >= payamRepresentatives.length) return;
+        const next = [...payamRepresentatives];
+        const [item] = next.splice(index, 1);
+        next.splice(nextIndex, 0, item);
+        await reorderPayamRepresentatives(next);
+    };
 
     const handleAdd = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -451,7 +445,7 @@ const Leadership = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {sortedExecutiveCommittee.map((member) => {
+                            {executiveCommittee.map((member, idx) => {
                                 const Icon = member.icon && iconMap[member.icon] ? iconMap[member.icon] : UserCircle;
                                 const imageUrl = member.image ?? staticExecutive.find((s) => s.name === member.name)?.image;
                                 return (
@@ -474,6 +468,26 @@ const Leadership = () => {
                                                 )}
                                             </div>
                                             <div className="flex gap-2 flex-shrink-0">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 p-0"
+                                                    onClick={() => void moveExec(member.id, -1)}
+                                                    disabled={idx === 0}
+                                                    aria-label="Move up"
+                                                >
+                                                    <ArrowUp className="h-4 w-4" />
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    className="h-8 w-8 p-0"
+                                                    onClick={() => void moveExec(member.id, 1)}
+                                                    disabled={idx === executiveCommittee.length - 1}
+                                                    aria-label="Move down"
+                                                >
+                                                    <ArrowDown className="h-4 w-4" />
+                                                </Button>
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
@@ -510,7 +524,7 @@ const Leadership = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            {payamRepresentatives.map((rep) => {
+                            {payamRepresentatives.map((rep, idx) => {
                                 const staticRep = staticPayam.find((s) => s.payam === rep.payam);
                                 const displayName = rep.name || staticRep?.name || "";
                                 const displayPosition = rep.position ?? staticRep?.position;
@@ -542,6 +556,26 @@ const Leadership = () => {
                                             </div>
                                         </div>
                                         <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0"
+                                                onClick={() => void movePayam(rep.id, -1)}
+                                                disabled={idx === 0}
+                                                aria-label="Move up"
+                                            >
+                                                <ArrowUp className="h-4 w-4" />
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-8 w-8 p-0"
+                                                onClick={() => void movePayam(rep.id, 1)}
+                                                disabled={idx === payamRepresentatives.length - 1}
+                                                aria-label="Move down"
+                                            >
+                                                <ArrowDown className="h-4 w-4" />
+                                            </Button>
                                             <Button
                                                 size="sm"
                                                 variant="ghost"

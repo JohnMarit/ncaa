@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Heart, CreditCard, Shield, CheckCircle, Gift } from "lucide-react";
@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import PaystackDonation from "@/components/PaystackDonation";
 
 const Donate = () => {
+    const location = useLocation();
     const navigate = useNavigate();
     const [amount, setAmount] = useState("");
     const [currency, setCurrency] = useState<"USD" | "SSP">("USD");
@@ -25,6 +26,46 @@ const Donate = () => {
     const [showPaystack, setShowPaystack] = useState(false);
     const { toast } = useToast();
     const amountInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const params = new URLSearchParams(location.search);
+        const refFromQuery = params.get("reference")?.trim();
+        let refFromSession: string | null = null;
+        try {
+            refFromSession = sessionStorage.getItem("paystack_reference");
+        } catch {
+        }
+
+        const reference = refFromQuery || refFromSession || "";
+        if (!reference) {
+            return;
+        }
+
+        if (refFromQuery) {
+            params.delete("reference");
+            const search = params.toString();
+            navigate({ pathname: location.pathname, search: search ? `?${search}` : "" }, { replace: true });
+        }
+
+        try {
+            sessionStorage.removeItem("paystack_reference");
+        } catch {
+        }
+
+        setShowPaystack(false);
+        setAmount("");
+        setCurrency("USD");
+        setDonorName("");
+        setDonorEmail("");
+        setDonorPhone("");
+
+        toast({
+            title: "Donation completed",
+            description: `Reference: ${reference}`,
+        });
+
+        navigate("/");
+    }, [location.pathname, location.search, navigate, toast]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();

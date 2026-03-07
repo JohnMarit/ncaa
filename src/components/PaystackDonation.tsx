@@ -56,7 +56,10 @@ const PaystackDonation = ({
       }
 
       if (reference) {
-        onSuccess(reference);
+        try {
+          sessionStorage.setItem("paystack_reference", reference);
+        } catch {
+        }
       }
 
       window.location.assign(authorizationUrl);

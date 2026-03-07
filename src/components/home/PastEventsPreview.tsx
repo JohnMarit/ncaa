@@ -6,9 +6,9 @@ import { usePublicEvents } from "@/hooks/usePublicEvents";
 
 export const PastEventsPreview = () => {
     const { pastEvents } = usePublicEvents();
-    const previewEvents = pastEvents.slice(0, 3);
+    const previewEvents = pastEvents.slice(0, 6);
     const [needsReadMore, setNeedsReadMore] = useState<Set<string>>(new Set());
-    const descriptionRefs = useRef<Record<string, HTMLParagraphElement | null>>({});
+    const descriptionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
     useEffect(() => {
         const newNeedsReadMore = new Set<string>();
@@ -73,14 +73,14 @@ export const PastEventsPreview = () => {
                                 <h3 className="mb-3 font-heading text-lg font-bold">{event.title}</h3>
                                 {event.description && (
                                     <div className="mb-4">
-                                        <p 
+                                        <div
                                             ref={(el) => {
                                                 descriptionRefs.current[event.id] = el;
                                             }}
-                                            className="text-sm text-muted-foreground line-clamp-3"
+                                            className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-line"
                                         >
                                             {event.description}
-                                        </p>
+                                        </div>
                                         {shouldShowReadMore(event.id) && (
                                             <Button
                                                 asChild

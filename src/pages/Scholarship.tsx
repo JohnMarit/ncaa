@@ -162,9 +162,9 @@ const Scholarship = () => {
                                             </CardHeader>
                                             <CardContent className="mt-auto pt-0">
                                                 <Button asChild className="w-full sm:w-auto">
-                                                    <a href={s.applicationLink} target="_blank" rel="noopener noreferrer">
+                                                    <Link to={`/scholarship/apply/${s.id}`}>
                                                         Apply for this scholarship <ExternalLink className="ml-2 h-4 w-4" />
-                                                    </a>
+                                                    </Link>
                                                 </Button>
                                             </CardContent>
                                         </Card>

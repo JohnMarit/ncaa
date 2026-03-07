@@ -132,15 +132,36 @@ export interface AdminEvent {
   published?: boolean;
 }
 
+export type ScholarshipFormFieldType = "text" | "textarea" | "email" | "tel" | "number" | "select";
+
+export interface ScholarshipFormField {
+  id: string;
+  label: string;
+  type: ScholarshipFormFieldType;
+  required?: boolean;
+  /** Only used for type === "select" */
+  options?: string[];
+ }
+
 export interface AdminScholarship {
   id: string;
   title: string;
   description: string;
   /** URL for the application form or page */
   applicationLink: string;
+  /** Optional internal form definition for collecting applicant info */
+  formFields?: ScholarshipFormField[];
   /** ISO date string; set on create for ordering. */
   createdAt?: string;
 }
+
+export interface ScholarshipApplicationSubmission {
+  id: string;
+  scholarshipId: string;
+  scholarshipTitle: string;
+  answers: Record<string, unknown>;
+  submittedAt: string;
+ }
 
 interface AdminDataContextType {
   members: Member[];
@@ -153,6 +174,7 @@ interface AdminDataContextType {
   payamRepresentatives: AdminPayamRepresentative[];
   events: AdminEvent[];
   scholarships: AdminScholarship[];
+  submitScholarshipApplication: (input: Omit<ScholarshipApplicationSubmission, "id" | "submittedAt">) => Promise<void>;
   addMember: (member: Omit<Member, "id" | "status" | "appliedDate" | "paymentStatus">) => void;
   updateMember: (id: string, updates: Partial<Omit<Member, "id" | "appliedDate">>) => void;
   approveMember: (id: string) => void;
@@ -206,6 +228,7 @@ const FIRESTORE_COLLECTIONS = {
   leadershipPayam: "leadership_payam",
   documents: "documents",
   scholarships: "scholarships",
+  scholarshipApplications: "scholarship_applications",
   members: "members",
   payments: "payments",
   notifications: "notifications",
@@ -1238,6 +1261,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       title: input.title,
       description: input.description,
       applicationLink: input.applicationLink,
+      ...(Array.isArray((input as AdminScholarship).formFields) && { formFields: (input as AdminScholarship).formFields }),
       createdAt: new Date().toISOString(),
     };
     void setDoc(doc(db, FIRESTORE_COLLECTIONS.scholarships, scholarship.id), scholarship);
@@ -1249,6 +1273,17 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
 
   const deleteScholarship = (id: string) => {
     void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.scholarships, id));
+  };
+
+  const submitScholarshipApplication: AdminDataContextType["submitScholarshipApplication"] = async (input) => {
+    const submission: ScholarshipApplicationSubmission = {
+      id: crypto.randomUUID(),
+      scholarshipId: input.scholarshipId,
+      scholarshipTitle: input.scholarshipTitle,
+      answers: input.answers,
+      submittedAt: new Date().toISOString(),
+    };
+    await setDoc(doc(db, FIRESTORE_COLLECTIONS.scholarshipApplications, submission.id), submission);
   };
 
   return (
@@ -1264,6 +1299,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         payamRepresentatives,
         events,
         scholarships,
+        submitScholarshipApplication,
         addMember,
         updateMember,
         approveMember,

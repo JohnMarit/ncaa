@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import { signInWithCustomToken, signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 // ─── Firebase Functions API base URL ──────────────────────────────────────────
 // In dev, Vite proxy or the deployed Function URL. We read from env or fallback.
@@ -49,6 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const storedAuth = localStorage.getItem("nca_admin_auth");
         const storedUser = localStorage.getItem("nca_admin_user");
         const storedExpiresAt = localStorage.getItem("nca_admin_expires_at");
+        const storedFirebaseToken = localStorage.getItem("nca_admin_firebase_token");
 
         const expiresAtMs = storedExpiresAt ? Number(storedExpiresAt) : NaN;
         const isExpired = !Number.isFinite(expiresAtMs) || Date.now() >= expiresAtMs;
@@ -67,15 +70,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     setIsAuthenticated(true);
                     setUser({ email: parsed.email });
                     if (Number.isFinite(expiresAtMs)) scheduleAutoLogout(expiresAtMs);
+
+                    // Ensure Firebase Auth session exists for Firestore writes.
+                    // If it doesn't, reuse the last custom token (valid for sign-in) when present.
+                    if (!auth.currentUser && storedFirebaseToken && !isExpired) {
+                        signInWithCustomToken(auth, storedFirebaseToken).catch(() => {
+                            // Ignore: admin will be prompted to login again when needed.
+                        });
+                    }
                 } else {
                     localStorage.removeItem("nca_admin_auth");
                     localStorage.removeItem("nca_admin_user");
                     localStorage.removeItem("nca_admin_expires_at");
+                    localStorage.removeItem("nca_admin_firebase_token");
                 }
             } catch {
                 localStorage.removeItem("nca_admin_auth");
                 localStorage.removeItem("nca_admin_user");
                 localStorage.removeItem("nca_admin_expires_at");
+                localStorage.removeItem("nca_admin_firebase_token");
             }
         }
         return () => {
@@ -140,6 +153,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 return { success: false, error: data.error ?? "Verification failed." };
             }
 
+            if (!data.firebaseToken || typeof data.firebaseToken !== "string") {
+                return { success: false, error: "Missing Firebase token. Please try again." };
+            }
+
+            // Sign into Firebase Auth so we can write to Firestore with admin rules.
+            try {
+                await signInWithCustomToken(auth, data.firebaseToken);
+                localStorage.setItem("nca_admin_firebase_token", data.firebaseToken);
+            } catch {
+                return { success: false, error: "Failed to start admin session. Please try again." };
+            }
+
             // Mark as authenticated
             const userEmail = email.trim().toLowerCase();
             setIsAuthenticated(true);
@@ -163,6 +188,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.removeItem("nca_admin_auth");
         localStorage.removeItem("nca_admin_user");
         localStorage.removeItem("nca_admin_expires_at");
+        localStorage.removeItem("nca_admin_firebase_token");
+        signOut(auth).catch(() => {
+            // ignore
+        });
     };
 
     return (

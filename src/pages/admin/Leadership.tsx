@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, type ElementType } from "react";
+import { useState, useMemo, type ElementType } from "react";
 import { Crown, Plus, Edit, Trash2, MapPin, UserCircle, FileText, DollarSign, Users, Megaphone, Scale, GraduationCap, Heart, Trophy, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,41 +65,6 @@ const Leadership = () => {
         deletePayamRepresentative,
     } = useAdminData();
 
-    // Initialize with static data if empty (same images and order as public leadership page)
-    useEffect(() => {
-        if (executiveCommittee.length === 0) {
-            staticExecutive.forEach((m: ExecutiveCommitteeMember) => {
-                let iconName = "UserCircle";
-                try {
-                    if (typeof m.icon === "function") {
-                        const iconFunc = m.icon as { name?: string };
-                        iconName = iconFunc.name || "UserCircle";
-                    }
-                } catch {
-                    iconName = "UserCircle";
-                }
-                addExecutiveMember({
-                    name: m.name,
-                    position: m.position,
-                    description: m.description,
-                    color: m.color,
-                    icon: iconName,
-                    image: m.image,
-                });
-            });
-        }
-        if (payamRepresentatives.length === 0) {
-            staticPayam.forEach((p) => {
-                addPayamRepresentative({
-                    name: p.name,
-                    payam: p.payam,
-                    ...(p.position && { position: p.position }),
-                    ...(p.image && { image: p.image }),
-                });
-            });
-        }
-    }, [executiveCommittee.length, payamRepresentatives.length, addExecutiveMember, addPayamRepresentative]);
-
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [editingMember, setEditingMember] = useState<{ id: string; type: "executive" | "payam" } | null>(null);
@@ -143,7 +108,7 @@ const Leadership = () => {
             if (rep) {
                 const staticRep = staticPayam.find((s) => s.payam === rep.payam);
                 setEditForm({
-                    name: staticRep?.name ?? rep.name,
+                    name: rep.name || staticRep?.name || "",
                     position: rep.position ?? staticRep?.position ?? "",
                     description: "",
                     payam: rep.payam,
@@ -502,7 +467,7 @@ const Leadership = () => {
                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                             {payamRepresentatives.map((rep) => {
                                 const staticRep = staticPayam.find((s) => s.payam === rep.payam);
-                                const displayName = staticRep?.name ?? rep.name;
+                                const displayName = rep.name || staticRep?.name || "";
                                 const displayPosition = rep.position ?? staticRep?.position;
                                 const imageUrl = rep.image ?? staticRep?.image;
                                 return (

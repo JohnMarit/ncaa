@@ -3,6 +3,8 @@ import { Footer } from "@/components/layout/Footer";
 import { FileText, Download, Eye, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMemo } from "react";
+import { useAdminData } from "@/contexts/AdminDataContext";
 
 // Mock data - TODO: Replace with API call
 const documents = {
@@ -114,19 +116,58 @@ const DocumentCard = ({ doc }: { doc: any }) => (
             </span>
         </div>
         <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1">
-                <Eye className="mr-2 h-4 w-4" />
-                View
+            <Button asChild variant="outline" size="sm" className="flex-1" disabled={!doc.fileUrl}>
+                <a href={doc.fileUrl || "#"} target="_blank" rel="noopener noreferrer">
+                    <Eye className="mr-2 h-4 w-4" />
+                    View
+                </a>
             </Button>
-            <Button size="sm" className="flex-1">
-                <Download className="mr-2 h-4 w-4" />
-                Download
+            <Button asChild size="sm" className="flex-1" disabled={!doc.fileUrl}>
+                <a href={doc.fileUrl || "#"} target="_blank" rel="noopener noreferrer">
+                    <Download className="mr-2 h-4 w-4" />
+                    Download
+                </a>
             </Button>
         </div>
     </div>
 );
 
 const Documents = () => {
+    const { documents: adminDocuments } = useAdminData();
+
+    const grouped = useMemo(() => {
+        const published = adminDocuments.filter((d) => d.status === "published");
+        if (published.length === 0) return documents;
+
+        const result: Record<string, any[]> = {
+            constitution: [],
+            regulations: [],
+            minutes: [],
+            reports: [],
+        };
+
+        const normalizeKey = (category: string): keyof typeof result => {
+            const c = category.trim().toLowerCase();
+            if (c.includes("constitution")) return "constitution";
+            if (c.includes("regulation")) return "regulations";
+            if (c.includes("minute")) return "minutes";
+            if (c.includes("report")) return "reports";
+            return "reports";
+        };
+
+        for (const d of published) {
+            const key = normalizeKey(d.category);
+            result[key].push(d);
+        }
+
+        // newest first
+        for (const key of Object.keys(result) as (keyof typeof result)[]) {
+            result[key].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        }
+
+        return result;
+    }, [adminDocuments]);
+
     return (
         <div className="flex min-h-screen flex-col">
             <Header />
@@ -157,25 +198,25 @@ const Documents = () => {
                             </TabsList>
 
                             <TabsContent value="constitution" className="space-y-4">
-                                {documents.constitution.map((doc) => (
+                                {grouped.constitution.map((doc) => (
                                     <DocumentCard key={doc.id} doc={doc} />
                                 ))}
                             </TabsContent>
 
                             <TabsContent value="regulations" className="space-y-4">
-                                {documents.regulations.map((doc) => (
+                                {grouped.regulations.map((doc) => (
                                     <DocumentCard key={doc.id} doc={doc} />
                                 ))}
                             </TabsContent>
 
                             <TabsContent value="minutes" className="space-y-4">
-                                {documents.minutes.map((doc) => (
+                                {grouped.minutes.map((doc) => (
                                     <DocumentCard key={doc.id} doc={doc} />
                                 ))}
                             </TabsContent>
 
                             <TabsContent value="reports" className="space-y-4">
-                                {documents.reports.map((doc) => (
+                                {grouped.reports.map((doc) => (
                                     <DocumentCard key={doc.id} doc={doc} />
                                 ))}
                             </TabsContent>

@@ -10,6 +10,7 @@ import { defineSecret } from "firebase-functions/params";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { initializeApp as initializeAdminApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import * as nodemailer from "nodemailer";
 
@@ -20,6 +21,7 @@ const GMAIL_PASS = defineSecret("GMAIL_PASS");
 
 initializeAdminApp();
 const adminDb = getFirestore();
+const adminAuth = getAuth();
 
 const api = express();
 const allowedOrigins = [
@@ -146,6 +148,12 @@ api.post("/auth/verify-otp", async (req: Request, res: Response) => {
     }
 
     const normalised = email.trim().toLowerCase();
+
+    if (!ADMIN_EMAILS.includes(normalised)) {
+      res.status(403).json({ error: "Email not authorised for admin access" });
+      return;
+    }
+
     const docRef = adminDb.collection("admin_otps").doc(normalised);
     const snap = await docRef.get();
 
@@ -171,8 +179,22 @@ api.post("/auth/verify-otp", async (req: Request, res: Response) => {
     // OTP is valid – delete it (single use)
     await docRef.delete();
 
+    // Create (or fetch) a Firebase Auth user for this admin email
+    // Use a stable uid derived from email so it stays consistent.
+    const uid = `admin:${normalised}`;
+    try {
+      await adminAuth.getUser(uid);
+    } catch {
+      await adminAuth.createUser({ uid, email: normalised });
+    }
+
+    // Ensure admin claim is present
+    await adminAuth.setCustomUserClaims(uid, { admin: true });
+
+    const firebaseToken = await adminAuth.createCustomToken(uid, { admin: true });
+
     logger.info("OTP verified", { email: normalised });
-    res.status(200).json({ success: true });
+    res.status(200).json({ success: true, firebaseToken });
   } catch (err) {
     logger.error("Failed to verify OTP", err);
     res.status(500).json({ error: "Verification failed. Please try again." });

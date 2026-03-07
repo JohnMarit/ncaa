@@ -2,29 +2,69 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to authenticated users
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
     }
     
     // Example: Members collection with more specific rules
     match /members/{memberId} {
-      // Allow users to read their own member document
-      allow read: if request.auth != null && request.auth.uid == memberId;
-      // Allow admins to read/write all member documents
-      allow write: if request.auth != null && 
-        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
+      // Public can submit membership applications (create only).
+      allow create: if true;
+      // Admin can read/write all member documents.
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /payments/{paymentId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /elections/{electionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /nominations/{nominationId} {
+      // Keep nominations admin-only for now.
+      allow read, write: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read, write: if isAdmin();
     }
     
     // Example: Public collections (events, documents, etc.)
     match /events/{eventId} {
       allow read: if true; // Public read access
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /leadership_executive/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /leadership_payam/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
     
     match /documents/{documentId} {
       allow read: if true; // Public read access
-      allow write: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    match /scholarships/{scholarshipId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -1,6 +1,21 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { upcomingEvents as staticUpcomingEvents, pastEvents as staticPastEvents } from "@/data/events";
 import type { UpcomingEvent, PastEvent } from "@/data/events";
+import { executiveCommittee as staticExecutive, payamRepresentatives as staticPayam } from "@/data/leadership";
+import type { ExecutiveCommitteeMember, PayamRepresentative } from "@/data/leadership";
+import {
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
 
 export type MemberStatus = "approved" | "pending" | "rejected";
 export type PaymentStatus = "paid" | "pending" | "failed";
@@ -180,6 +195,23 @@ const STORAGE_KEYS = {
   scholarships: "nca_admin_scholarships",
 };
 
+const FIRESTORE_COLLECTIONS = {
+  events: "events",
+  leadershipExecutive: "leadership_executive",
+  leadershipPayam: "leadership_payam",
+  documents: "documents",
+  scholarships: "scholarships",
+  members: "members",
+  payments: "payments",
+  notifications: "notifications",
+  elections: "elections",
+  nominations: "nominations",
+} as const;
+
+const FIRESTORE_DOCS = {
+  leadership: "default",
+} as const;
+
 /** Map of event title -> static image URL so we can apply images to events loaded from localStorage. */
 const staticEventImages: Record<string, string> = {};
 [...staticUpcomingEvents, ...staticPastEvents].forEach((e) => {
@@ -229,6 +261,39 @@ function seedEventsFromStatic(): AdminEvent[] {
   return result;
 }
 
+function seedExecutiveFromStatic(): AdminExecutiveMember[] {
+  return staticExecutive.map((m: ExecutiveCommitteeMember) => {
+    let iconName = "UserCircle";
+    try {
+      if (typeof m.icon === "function") {
+        const iconFunc = m.icon as { name?: string };
+        iconName = iconFunc.name || "UserCircle";
+      }
+    } catch {
+      iconName = "UserCircle";
+    }
+    return {
+      id: crypto.randomUUID(),
+      name: m.name,
+      position: m.position,
+      description: m.description,
+      color: m.color,
+      icon: iconName,
+      image: m.image,
+    };
+  });
+}
+
+function seedPayamFromStatic(): AdminPayamRepresentative[] {
+  return staticPayam.map((p: PayamRepresentative) => ({
+    id: crypto.randomUUID(),
+    name: p.name,
+    payam: p.payam,
+    ...(p.position !== undefined && { position: p.position }),
+    ...(p.image !== undefined && { image: p.image }),
+  }));
+}
+
 export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [members, setMembers] = useState<Member[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -241,113 +306,433 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [scholarships, setScholarships] = useState<AdminScholarship[]>([]);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (for non-Firestore-backed datasets)
   useEffect(() => {
-    try {
-      const storedMembers = localStorage.getItem(STORAGE_KEYS.members);
-      const storedPayments = localStorage.getItem(STORAGE_KEYS.payments);
-      const storedNotifications = localStorage.getItem(STORAGE_KEYS.notifications);
-      const storedElections = localStorage.getItem(STORAGE_KEYS.elections);
-      const storedNominations = localStorage.getItem(STORAGE_KEYS.nominations);
-      const storedDocuments = localStorage.getItem(STORAGE_KEYS.documents);
-      const storedExecutive = localStorage.getItem(STORAGE_KEYS.executiveCommittee);
-      const storedPayam = localStorage.getItem(STORAGE_KEYS.payamRepresentatives);
-      const storedEvents = localStorage.getItem(STORAGE_KEYS.events);
-      const storedScholarships = localStorage.getItem(STORAGE_KEYS.scholarships);
+    // Intentionally empty: all datasets are now Firestore-backed.
+  }, []);
 
-      if (storedMembers) setMembers(JSON.parse(storedMembers));
-      if (storedPayments) setPayments(JSON.parse(storedPayments));
-      if (storedNotifications) setNotifications(JSON.parse(storedNotifications));
-      if (storedElections) setElections(JSON.parse(storedElections));
-      if (storedNominations) setNominations(JSON.parse(storedNominations));
-      if (storedDocuments) setDocuments(JSON.parse(storedDocuments));
-      if (storedExecutive) setExecutiveCommittee(JSON.parse(storedExecutive));
-      if (storedPayam) setPayamRepresentatives(JSON.parse(storedPayam));
-      // Events: use stored list when present and non-empty (so admin deletes persist). Otherwise seed from static so original events show.
-      const seedEvents = seedEventsFromStatic();
-      if (storedEvents) {
+  // Firestore: members – real-time sync + one-time seed
+  useEffect(() => {
+    const membersCol = collection(db, FIRESTORE_COLLECTIONS.members);
+
+    const seedMembersIfEmpty = async () => {
+      const snap = await getDocs(query(membersCol));
+      if (!snap.empty) return;
+
+      let seed: Member[] | null = null;
+      const stored = localStorage.getItem(STORAGE_KEYS.members);
+      if (stored) {
         try {
-          const parsed = JSON.parse(storedEvents) as AdminEvent[];
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const withUpdatedContent = parsed.map((e) => {
-              let updated = { ...e };
-              if (updated.title === "International Girls' Day") {
-                updated.title = "International Women's Day";
-              }
-              if (updated.description && updated.description.includes("International Girls' Day")) {
-                updated.description = updated.description.replace(/International Girls' Day/g, "International Women's Day");
-              }
-              if (updated.description && updated.description.includes("girls' achievements")) {
-                updated.description = updated.description.replace(/girls' achievements/g, "women's achievements");
-              }
-              return {
-                ...updated,
-                image: updated.image || staticEventImages[updated.title] || undefined,
-              };
-            });
-            setEvents(withUpdatedContent);
-          } else {
-            setEvents(seedEvents);
-          }
-        } catch {
-          setEvents(seedEvents);
-        }
-      } else {
-        setEvents(seedEvents);
-      }
-      if (storedScholarships) {
-        try {
-          const parsed = JSON.parse(storedScholarships) as AdminScholarship[];
-          if (Array.isArray(parsed)) setScholarships(parsed);
+          const parsed = JSON.parse(stored) as Member[];
+          if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
         } catch {
           // ignore
         }
       }
-    } catch {
-      // Ignore parse errors and start with empty data
-    }
+
+      if (!seed) return;
+      await Promise.all(seed.map((m) => setDoc(doc(db, FIRESTORE_COLLECTIONS.members, m.id), m)));
+    };
+
+    seedMembersIfEmpty().catch(() => {
+      // ignore
+    });
+
+    const unsub = onSnapshot(query(membersCol), (snap) => {
+      const loaded: Member[] = [];
+      snap.forEach((d) => {
+        const raw = d.data() as Omit<Member, "id">;
+        loaded.push({ id: d.id, ...raw });
+      });
+      setMembers(loaded);
+    });
+
+    return () => {
+      unsub();
+    };
   }, []);
 
-  // Persist to localStorage
+  // Firestore: payments – real-time sync + one-time seed
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.members, JSON.stringify(members));
-  }, [members]);
+    const paymentsCol = collection(db, FIRESTORE_COLLECTIONS.payments);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.payments, JSON.stringify(payments));
-  }, [payments]);
+    const seedPaymentsIfEmpty = async () => {
+      const snap = await getDocs(query(paymentsCol));
+      if (!snap.empty) return;
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.notifications, JSON.stringify(notifications));
-  }, [notifications]);
+      let seed: Payment[] | null = null;
+      const stored = localStorage.getItem(STORAGE_KEYS.payments);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as Payment[];
+          if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+        } catch {
+          // ignore
+        }
+      }
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.elections, JSON.stringify(elections));
-  }, [elections]);
+      if (!seed) return;
+      await Promise.all(seed.map((p) => setDoc(doc(db, FIRESTORE_COLLECTIONS.payments, p.id), p)));
+    };
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.nominations, JSON.stringify(nominations));
-  }, [nominations]);
+    seedPaymentsIfEmpty().catch(() => {
+      // ignore
+    });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.documents, JSON.stringify(documents));
-  }, [documents]);
+    const unsub = onSnapshot(query(paymentsCol), (snap) => {
+      const loaded: Payment[] = [];
+      snap.forEach((d) => {
+        const raw = d.data() as Omit<Payment, "id">;
+        loaded.push({ id: d.id, ...raw });
+      });
+      setPayments(loaded);
+    });
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.executiveCommittee, JSON.stringify(executiveCommittee));
-  }, [executiveCommittee]);
+    return () => {
+      unsub();
+    };
+  }, []);
 
+  // Firestore: notifications – real-time sync + one-time seed
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.payamRepresentatives, JSON.stringify(payamRepresentatives));
-  }, [payamRepresentatives]);
+    const notificationsCol = collection(db, FIRESTORE_COLLECTIONS.notifications);
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.events, JSON.stringify(events));
-  }, [events]);
+    const seedNotificationsIfEmpty = async () => {
+      const snap = await getDocs(query(notificationsCol));
+      if (!snap.empty) return;
 
+      let seed: AdminNotification[] | null = null;
+      const stored = localStorage.getItem(STORAGE_KEYS.notifications);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as AdminNotification[];
+          if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!seed) return;
+      await Promise.all(seed.map((n) => setDoc(doc(db, FIRESTORE_COLLECTIONS.notifications, n.id), n)));
+    };
+
+    seedNotificationsIfEmpty().catch(() => {
+      // ignore
+    });
+
+    const unsub = onSnapshot(query(notificationsCol), (snap) => {
+      const loaded: AdminNotification[] = [];
+      snap.forEach((d) => {
+        const raw = d.data() as Omit<AdminNotification, "id">;
+        loaded.push({ id: d.id, ...raw });
+      });
+      setNotifications(loaded);
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: elections – real-time sync + one-time seed
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.scholarships, JSON.stringify(scholarships));
-  }, [scholarships]);
+    const electionsCol = collection(db, FIRESTORE_COLLECTIONS.elections);
+
+    const seedElectionsIfEmpty = async () => {
+      const snap = await getDocs(query(electionsCol));
+      if (!snap.empty) return;
+
+      let seed: Election[] | null = null;
+      const stored = localStorage.getItem(STORAGE_KEYS.elections);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as Election[];
+          if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!seed) return;
+      await Promise.all(seed.map((e) => setDoc(doc(db, FIRESTORE_COLLECTIONS.elections, e.id), e)));
+    };
+
+    seedElectionsIfEmpty().catch(() => {
+      // ignore
+    });
+
+    const unsub = onSnapshot(query(electionsCol), (snap) => {
+      const loaded: Election[] = [];
+      snap.forEach((d) => {
+        const raw = d.data() as Omit<Election, "id">;
+        loaded.push({ id: d.id, ...raw });
+      });
+      setElections(loaded);
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: nominations – real-time sync + one-time seed
+  useEffect(() => {
+    const nominationsCol = collection(db, FIRESTORE_COLLECTIONS.nominations);
+
+    const seedNominationsIfEmpty = async () => {
+      const snap = await getDocs(query(nominationsCol));
+      if (!snap.empty) return;
+
+      let seed: Nomination[] | null = null;
+      const stored = localStorage.getItem(STORAGE_KEYS.nominations);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as Nomination[];
+          if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!seed) return;
+      await Promise.all(seed.map((n) => setDoc(doc(db, FIRESTORE_COLLECTIONS.nominations, n.id), n)));
+    };
+
+    seedNominationsIfEmpty().catch(() => {
+      // ignore
+    });
+
+    const unsub = onSnapshot(query(nominationsCol), (snap) => {
+      const loaded: Nomination[] = [];
+      snap.forEach((d) => {
+        const raw = d.data() as Omit<Nomination, "id">;
+        loaded.push({ id: d.id, ...raw });
+      });
+      setNominations(loaded);
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: documents – real-time sync + one-time seed
+  useEffect(() => {
+    const docsCol = collection(db, FIRESTORE_COLLECTIONS.documents);
+
+    const seedDocumentsIfEmpty = async () => {
+      const snap = await getDocs(query(docsCol));
+      if (!snap.empty) return;
+
+      let seed: DocumentItem[] | null = null;
+      const stored = localStorage.getItem(STORAGE_KEYS.documents);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as DocumentItem[];
+          if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!seed) return;
+
+      await Promise.all(seed.map((d) => setDoc(doc(db, FIRESTORE_COLLECTIONS.documents, d.id), d)));
+    };
+
+    seedDocumentsIfEmpty().catch(() => {
+      // ignore
+    });
+
+    const unsub = onSnapshot(query(docsCol), (snap) => {
+      const loaded: DocumentItem[] = [];
+      snap.forEach((d) => {
+        const raw = d.data() as Omit<DocumentItem, "id">;
+        loaded.push({ id: d.id, ...raw });
+      });
+      setDocuments(loaded);
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: scholarships – real-time sync + one-time seed
+  useEffect(() => {
+    const scholarshipsCol = collection(db, FIRESTORE_COLLECTIONS.scholarships);
+
+    const seedScholarshipsIfEmpty = async () => {
+      const snap = await getDocs(query(scholarshipsCol));
+      if (!snap.empty) return;
+
+      let seed: AdminScholarship[] | null = null;
+      const stored = localStorage.getItem(STORAGE_KEYS.scholarships);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as AdminScholarship[];
+          if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!seed) return;
+      await Promise.all(seed.map((s) => setDoc(doc(db, FIRESTORE_COLLECTIONS.scholarships, s.id), s)));
+    };
+
+    seedScholarshipsIfEmpty().catch(() => {
+      // ignore
+    });
+
+    const unsub = onSnapshot(query(scholarshipsCol), (snap) => {
+      const loaded: AdminScholarship[] = [];
+      snap.forEach((d) => {
+        const raw = d.data() as Omit<AdminScholarship, "id">;
+        loaded.push({ id: d.id, ...raw });
+      });
+      setScholarships(loaded);
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: leadership (executive + payam) – real-time sync + one-time seed
+  useEffect(() => {
+    const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
+    const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
+
+    const seedLeadershipIfMissing = async () => {
+      const [execSnap, payamSnap] = await Promise.all([getDoc(execRef), getDoc(payamRef)]);
+
+      if (!execSnap.exists()) {
+        let seed: AdminExecutiveMember[] | null = null;
+        const stored = localStorage.getItem(STORAGE_KEYS.executiveCommittee);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored) as AdminExecutiveMember[];
+            if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+          } catch {
+            // ignore
+          }
+        }
+        if (!seed) seed = seedExecutiveFromStatic();
+        await setDoc(execRef, { items: seed });
+      }
+
+      if (!payamSnap.exists()) {
+        let seed: AdminPayamRepresentative[] | null = null;
+        const stored = localStorage.getItem(STORAGE_KEYS.payamRepresentatives);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored) as AdminPayamRepresentative[];
+            if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+          } catch {
+            // ignore
+          }
+        }
+        if (!seed) seed = seedPayamFromStatic();
+        await setDoc(payamRef, { items: seed });
+      }
+    };
+
+    seedLeadershipIfMissing().catch(() => {
+      // ignore; subscriptions will still attempt to read.
+    });
+
+    const unsubExec = onSnapshot(execRef, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data() as { items?: AdminExecutiveMember[] };
+      if (Array.isArray(data.items)) setExecutiveCommittee(data.items);
+    });
+
+    const unsubPayam = onSnapshot(payamRef, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data() as { items?: AdminPayamRepresentative[] };
+      if (Array.isArray(data.items)) setPayamRepresentatives(data.items);
+    });
+
+    return () => {
+      unsubExec();
+      unsubPayam();
+    };
+  }, []);
+
+  // Firestore: events – real-time sync + one-time seed
+  useEffect(() => {
+    const eventsCol = collection(db, FIRESTORE_COLLECTIONS.events);
+
+    const seedEventsIfEmpty = async () => {
+      const snap = await getDocs(query(eventsCol));
+      if (!snap.empty) return;
+
+      let seed: AdminEvent[] | null = null;
+      const stored = localStorage.getItem(STORAGE_KEYS.events);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as AdminEvent[];
+          if (Array.isArray(parsed) && parsed.length > 0) seed = parsed;
+        } catch {
+          // ignore
+        }
+      }
+      if (!seed) seed = seedEventsFromStatic();
+
+      await Promise.all(
+        seed.map((e) =>
+          setDoc(doc(db, FIRESTORE_COLLECTIONS.events, e.id), {
+            ...e,
+            image: e.image || staticEventImages[e.title] || undefined,
+          })
+        )
+      );
+    };
+
+    seedEventsIfEmpty().catch(() => {
+      // ignore
+    });
+
+    const unsub = onSnapshot(query(eventsCol), (snap) => {
+      const loaded: AdminEvent[] = [];
+      snap.forEach((d) => {
+        const raw = d.data() as Omit<AdminEvent, "id">;
+        let updated: AdminEvent = { id: d.id, ...raw };
+
+        // Normalize legacy content changes
+        if (updated.title === "International Girls' Day") {
+          updated = { ...updated, title: "International Women's Day" };
+        }
+        if (updated.description && updated.description.includes("International Girls' Day")) {
+          updated = {
+            ...updated,
+            description: updated.description.replace(/International Girls' Day/g, "International Women's Day"),
+          };
+        }
+        if (updated.description && updated.description.includes("girls' achievements")) {
+          updated = {
+            ...updated,
+            description: updated.description.replace(/girls' achievements/g, "women's achievements"),
+          };
+        }
+
+        loaded.push({
+          ...updated,
+          image: updated.image || staticEventImages[updated.title] || undefined,
+        });
+      });
+      setEvents(loaded);
+    });
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Note: leadership + events are Firestore-backed; we intentionally do not persist them to localStorage.
+
+  // Note: documents + scholarships are Firestore-backed; we intentionally do not persist them to localStorage.
 
   const addMember: AdminDataContextType["addMember"] = (input) => {
     const now = new Date();
@@ -365,45 +750,36 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       paymentStatus: "pending",
     };
 
-    setMembers((prev) => [newMember, ...prev]);
+    void setDoc(doc(db, FIRESTORE_COLLECTIONS.members, newMember.id), newMember);
 
-    // Create an admin notification
-    const notification: AdminNotification = {
-      id: crypto.randomUUID(),
-      type: "approval",
-      title: "New Membership Application",
-      description: `${newMember.firstName} ${newMember.lastName} has applied for membership.`,
-      time: now.toISOString(),
-      unread: true,
-      link: "/admin/members",
-    };
-    setNotifications((prev) => [notification, ...prev]);
+    // Create an admin notification only when an authenticated admin is present.
+    // Public membership applications should still succeed without Firebase Auth.
+    if (auth.currentUser) {
+      const notification: AdminNotification = {
+        id: crypto.randomUUID(),
+        type: "approval",
+        title: "New Membership Application",
+        description: `${newMember.firstName} ${newMember.lastName} has applied for membership.`,
+        time: now.toISOString(),
+        unread: true,
+        link: "/admin/members",
+      };
+      void setDoc(doc(db, FIRESTORE_COLLECTIONS.notifications, notification.id), notification).catch(() => {
+        // ignore
+      });
+    }
   };
 
   const updateMember = (id: string, updates: Partial<Omit<Member, "id" | "appliedDate">>) => {
-    setMembers((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.members, id), updates as Record<string, unknown>);
   };
 
   const approveMember = (id: string) => {
-    setMembers((prev) =>
-      prev.map((m) =>
-        m.id === id
-          ? { ...m, status: "approved" as MemberStatus }
-          : m
-      )
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.members, id), { status: "approved" });
   };
 
   const rejectMember = (id: string) => {
-    setMembers((prev) =>
-      prev.map((m) =>
-        m.id === id
-          ? { ...m, status: "rejected" as MemberStatus }
-          : m
-      )
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.members, id), { status: "rejected" });
   };
 
   const addPayment: AdminDataContextType["addPayment"] = (input) => {
@@ -418,17 +794,21 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       date: now.toISOString(),
       status: input.status ?? "pending",
     };
-    setPayments((prev) => [payment, ...prev]);
+    void setDoc(doc(db, FIRESTORE_COLLECTIONS.payments, payment.id), payment);
   };
 
   const markNotificationRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.notifications, id), { unread: false });
   };
 
   const markAllNotificationsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    void Promise.all(
+      notifications
+        .filter((n) => n.unread)
+        .map((n) => updateDoc(doc(db, FIRESTORE_COLLECTIONS.notifications, n.id), { unread: false }))
+    ).catch(() => {
+      // ignore
+    });
   };
 
   const addElection: AdminDataContextType["addElection"] = (input) => {
@@ -443,18 +823,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       nominationsReceived: 0,
       votesCast: 0,
     };
-    setElections((prev) => [election, ...prev]);
+    void setDoc(doc(db, FIRESTORE_COLLECTIONS.elections, election.id), election);
   };
 
   const updateElection = (id: string, updates: Partial<Election>) => {
-    setElections((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.elections, id), updates as Record<string, unknown>);
   };
 
   const deleteElection = (id: string) => {
-    setElections((prev) => prev.filter((e) => e.id !== id));
-    setNominations((prev) => prev.filter((n) => n.electionId !== id));
+    void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.elections, id));
   };
 
   const addNomination: AdminDataContextType["addNomination"] = (input) => {
@@ -467,24 +844,27 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       status: "pending",
       submittedDate: now.toISOString(),
     };
-    setNominations((prev) => [nomination, ...prev]);
-    setElections((prev) =>
-      prev.map((e) =>
-        e.id === input.electionId
-          ? { ...e, nominationsReceived: e.nominationsReceived + 1 }
-          : e
-      )
-    );
+    void setDoc(doc(db, FIRESTORE_COLLECTIONS.nominations, nomination.id), nomination);
+    void (async () => {
+      try {
+        const electionRef = doc(db, FIRESTORE_COLLECTIONS.elections, input.electionId);
+        const snap = await getDoc(electionRef);
+        if (!snap.exists()) return;
+        const data = snap.data() as Election;
+        const current = typeof data.nominationsReceived === "number" ? data.nominationsReceived : 0;
+        await updateDoc(electionRef, { nominationsReceived: current + 1 });
+      } catch {
+        // ignore
+      }
+    })();
   };
 
   const approveNomination = (id: string) => {
-    setNominations((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, status: "approved" as const } : n))
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.nominations, id), { status: "approved" });
   };
 
   const rejectNomination = (id: string) => {
-    setNominations((prev) => prev.filter((n) => n.id !== id));
+    void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.nominations, id));
   };
 
   const addDocument: AdminDataContextType["addDocument"] = (input) => {
@@ -500,17 +880,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       fileUrl: input.fileUrl,
       date: now.toISOString(),
     };
-    setDocuments((prev) => [document, ...prev]);
+    void setDoc(doc(db, FIRESTORE_COLLECTIONS.documents, document.id), document);
   };
 
   const updateDocument = (id: string, updates: Partial<DocumentItem>) => {
-    setDocuments((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.documents, id), updates as Record<string, unknown>);
   };
 
   const deleteDocument = (id: string) => {
-    setDocuments((prev) => prev.filter((d) => d.id !== id));
+    void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.documents, id));
   };
 
   const addExecutiveMember: AdminDataContextType["addExecutiveMember"] = (input) => {
@@ -523,17 +901,37 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       icon: input.icon,
       image: input.image,
     };
-    setExecutiveCommittee((prev) => [member, ...prev]);
+    void (async () => {
+      const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
+      const snap = await getDoc(execRef);
+      const data = (snap.exists() ? (snap.data() as { items?: AdminExecutiveMember[] }) : {}) ?? {};
+      const items = Array.isArray(data.items) ? data.items : [];
+      await setDoc(execRef, { items: [member, ...items] });
+    })();
   };
 
   const updateExecutiveMember = (id: string, updates: Partial<AdminExecutiveMember>) => {
-    setExecutiveCommittee((prev) =>
-      prev.map((m) => (m.id === id ? { ...m, ...updates } : m))
-    );
+    void (async () => {
+      const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
+      const snap = await getDoc(execRef);
+      if (!snap.exists()) return;
+      const data = snap.data() as { items?: AdminExecutiveMember[] };
+      const items = Array.isArray(data.items) ? data.items : [];
+      const next = items.map((m) => (m.id === id ? { ...m, ...updates } : m));
+      await setDoc(execRef, { items: next });
+    })();
   };
 
   const deleteExecutiveMember = (id: string) => {
-    setExecutiveCommittee((prev) => prev.filter((m) => m.id !== id));
+    void (async () => {
+      const execRef = doc(db, FIRESTORE_COLLECTIONS.leadershipExecutive, FIRESTORE_DOCS.leadership);
+      const snap = await getDoc(execRef);
+      if (!snap.exists()) return;
+      const data = snap.data() as { items?: AdminExecutiveMember[] };
+      const items = Array.isArray(data.items) ? data.items : [];
+      const next = items.filter((m) => m.id !== id);
+      await setDoc(execRef, { items: next });
+    })();
   };
 
   const addPayamRepresentative: AdminDataContextType["addPayamRepresentative"] = (input) => {
@@ -544,17 +942,37 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       ...(input.position !== undefined && { position: input.position }),
       ...(input.image !== undefined && { image: input.image }),
     };
-    setPayamRepresentatives((prev) => [rep, ...prev]);
+    void (async () => {
+      const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
+      const snap = await getDoc(payamRef);
+      const data = (snap.exists() ? (snap.data() as { items?: AdminPayamRepresentative[] }) : {}) ?? {};
+      const items = Array.isArray(data.items) ? data.items : [];
+      await setDoc(payamRef, { items: [rep, ...items] });
+    })();
   };
 
   const updatePayamRepresentative = (id: string, updates: Partial<AdminPayamRepresentative>) => {
-    setPayamRepresentatives((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...updates } : r))
-    );
+    void (async () => {
+      const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
+      const snap = await getDoc(payamRef);
+      if (!snap.exists()) return;
+      const data = snap.data() as { items?: AdminPayamRepresentative[] };
+      const items = Array.isArray(data.items) ? data.items : [];
+      const next = items.map((r) => (r.id === id ? { ...r, ...updates } : r));
+      await setDoc(payamRef, { items: next });
+    })();
   };
 
   const deletePayamRepresentative = (id: string) => {
-    setPayamRepresentatives((prev) => prev.filter((r) => r.id !== id));
+    void (async () => {
+      const payamRef = doc(db, FIRESTORE_COLLECTIONS.leadershipPayam, FIRESTORE_DOCS.leadership);
+      const snap = await getDoc(payamRef);
+      if (!snap.exists()) return;
+      const data = snap.data() as { items?: AdminPayamRepresentative[] };
+      const items = Array.isArray(data.items) ? data.items : [];
+      const next = items.filter((r) => r.id !== id);
+      await setDoc(payamRef, { items: next });
+    })();
   };
 
   const addEvent: AdminDataContextType["addEvent"] = (input) => {
@@ -578,17 +996,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       createdAt: new Date().toISOString(),
       published: input.published ?? true,
     };
-    setEvents((prev) => [event, ...prev]);
+    void setDoc(doc(db, FIRESTORE_COLLECTIONS.events, event.id), event);
   };
 
   const updateEvent = (id: string, updates: Partial<AdminEvent>) => {
-    setEvents((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, ...updates } : e))
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.events, id), updates as Record<string, unknown>);
   };
 
   const deleteEvent = (id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+    void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.events, id));
   };
 
   const addScholarship: AdminDataContextType["addScholarship"] = (input) => {
@@ -599,17 +1015,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       applicationLink: input.applicationLink,
       createdAt: new Date().toISOString(),
     };
-    setScholarships((prev) => [scholarship, ...prev]);
+    void setDoc(doc(db, FIRESTORE_COLLECTIONS.scholarships, scholarship.id), scholarship);
   };
 
   const updateScholarship = (id: string, updates: Partial<AdminScholarship>) => {
-    setScholarships((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
-    );
+    void updateDoc(doc(db, FIRESTORE_COLLECTIONS.scholarships, id), updates as Record<string, unknown>);
   };
 
   const deleteScholarship = (id: string) => {
-    setScholarships((prev) => prev.filter((s) => s.id !== id));
+    void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.scholarships, id));
   };
 
   return (

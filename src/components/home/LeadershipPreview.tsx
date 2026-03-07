@@ -3,14 +3,57 @@ import { Button } from "@/components/ui/button";
 import { executiveCommittee } from "@/data/leadership";
 import { AvatarModal } from "@/components/ui/avatar-modal";
 import { useState } from "react";
+import { useAdminData } from "@/contexts/AdminDataContext";
+import {
+    Crown,
+    UserCircle,
+    FileText,
+    DollarSign,
+    Users,
+    Megaphone,
+    Scale,
+    GraduationCap,
+    Heart,
+    Trophy,
+    Lightbulb,
+} from "lucide-react";
 
 // Single shared gradient for all leadership accents
 const leadershipGradient = "from-[hsl(278_42%_34%)] to-[hsl(276_46%_30%)]";
 
+const iconMap: Record<string, React.ElementType> = {
+    Crown,
+    UserCircle,
+    FileText,
+    DollarSign,
+    Users,
+    Megaphone,
+    Scale,
+    GraduationCap,
+    Heart,
+    Trophy,
+    Lightbulb,
+};
+
 export const LeadershipPreview = () => {
+    const { executiveCommittee: adminExecutive } = useAdminData();
+
     // Display only the top 3 executive committee members
     // This data is sourced from the centralized leadership data
-    const topThreeLeaders = executiveCommittee.slice(0, 3);
+    const topThreeLeaders = (adminExecutive.length > 0
+        ? adminExecutive.map((m) => {
+            const staticMatch = executiveCommittee.find((s) => s.name === m.name);
+            const Icon = m.icon && iconMap[m.icon] ? iconMap[m.icon] : staticMatch?.icon ?? UserCircle;
+            return {
+                name: m.name,
+                position: m.position,
+                description: m.description,
+                icon: Icon,
+                image: m.image ?? staticMatch?.image,
+            };
+        })
+        : executiveCommittee
+    ).slice(0, 3);
     const [selectedMember, setSelectedMember] = useState<{
         image: string;
         name: string;

@@ -624,6 +624,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const seedDocumentsIfEmpty = async () => {
       if (!isAdminUser) return;
       const snap = await getDocs(query(docsCol));
+      console.info("seedDocumentsIfEmpty snapshot empty", snap.empty);
       if (!snap.empty) return;
 
       let seed: DocumentItem[] | null = null;
@@ -656,8 +657,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         });
         setDocuments(loaded);
       },
-      () => {
-        // ignore
+      (err) => {
+        console.error("documents onSnapshot failed", err);
       }
     );
 
@@ -673,6 +674,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const seedScholarshipsIfEmpty = async () => {
       if (!isAdminUser) return;
       const snap = await getDocs(query(scholarshipsCol));
+      console.info("seedScholarshipsIfEmpty snapshot empty", snap.empty);
       if (!snap.empty) return;
 
       let seed: AdminScholarship[] | null = null;
@@ -704,8 +706,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         });
         setScholarships(loaded);
       },
-      () => {
-        // ignore
+      (err) => {
+        console.error("scholarships onSnapshot failed", err);
       }
     );
 
@@ -796,6 +798,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const seedEventsIfEmpty = async () => {
       if (!isAdminUser) return;
       const snap = await getDocs(query(eventsCol));
+      console.info("seedEventsIfEmpty snapshot empty", snap.empty);
       if (!snap.empty) return;
 
       let seed: AdminEvent[] | null = null;
@@ -856,8 +859,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         });
         setEvents(loaded);
       },
-      () => {
-        // ignore
+      (err) => {
+        console.error("events onSnapshot failed", err);
       }
     );
 

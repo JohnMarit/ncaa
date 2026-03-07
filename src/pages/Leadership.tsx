@@ -111,17 +111,17 @@ const Leadership = () => {
                                                         position: featured.position,
                                                         description: featured.description
                                                     })}
-                                                    className="relative w-full h-64 overflow-hidden rounded-t-2xl bg-muted transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center lg:h-72"
+                                                    className="relative w-full aspect-square overflow-hidden rounded-t-2xl bg-muted transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center"
                                                     aria-label={`View larger image of ${featured.name}`}
                                                 >
                                                     <img
                                                         src={featured.image}
                                                         alt={featured.name}
-                                                        className="h-full w-full object-cover object-top"
+                                                        className="h-full w-full object-contain"
                                                     />
                                                 </button>
                                             ) : (
-                                                <div className={`flex w-full h-64 items-center justify-center bg-gradient-to-br ${leadershipGradient} rounded-t-2xl lg:h-72`}>
+                                                <div className={`flex w-full aspect-square items-center justify-center bg-gradient-to-br ${leadershipGradient} rounded-t-2xl`}>
                                                     <FeaturedIcon className="h-16 w-16 text-white" />
                                                 </div>
                                             )}
@@ -158,17 +158,17 @@ const Leadership = () => {
                                                                 position: member.position,
                                                                 description: member.description
                                                             })}
-                                                            className="relative w-full h-56 overflow-hidden bg-muted transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                                                            className="relative w-full aspect-square overflow-hidden bg-muted transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center"
                                                             aria-label={`View larger image of ${member.name}`}
                                                         >
                                                             <img
                                                                 src={member.image}
                                                                 alt={member.name}
-                                                                className={`h-full w-full ${member.position === "Chairlady" || member.position === "Deputy Chairlady" || member.position === "Secretary General" ? "object-cover object-top" : "object-cover"}`}
+                                                                className="h-full w-full object-contain"
                                                             />
                                                         </button>
                                                     ) : (
-                                                        <div className={`flex w-full h-56 items-center justify-center bg-gradient-to-br ${leadershipGradient}`}>
+                                                        <div className={`flex w-full aspect-square items-center justify-center bg-gradient-to-br ${leadershipGradient}`}>
                                                             <Icon className="h-12 w-12 text-white" />
                                                         </div>
                                                     )}
@@ -288,7 +288,7 @@ const Leadership = () => {
                                         Term of Office
                                     </h3>
                                     <p className="text-sm text-muted-foreground md:text-base">
-                                        All executive committee members serve a term of <strong>three (3) years</strong> and
+                                        All executive committee members serve a term of <strong>two (2) years</strong> and
                                         are eligible for re-election. Elections are conducted through transparent and
                                         democratic processes as outlined in the NCAA Constitution.
                                     </p>

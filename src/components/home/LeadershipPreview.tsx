@@ -97,17 +97,17 @@ export const LeadershipPreview = () => {
                                             position: member.position,
                                             description: member.description
                                         })}
-                                        className="relative w-full h-56 overflow-hidden transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 lg:h-64"
+                                        className="relative w-full aspect-square overflow-hidden transition-opacity duration-200 hover:opacity-90 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center"
                                         aria-label={`View larger image of ${member.name}`}
                                     >
                                         <img
                                             src={member.image}
                                             alt={member.name}
-                                            className={`h-full w-full ${member.position === "Chairlady" || member.position === "Deputy Chairlady" || member.position === "Secretary General" ? "object-cover object-top" : "object-cover"}`}
+                                            className="h-full w-full object-contain"
                                         />
                                     </button>
                                 ) : (
-                                    <div className={`flex w-full h-56 items-center justify-center bg-gradient-to-br ${leadershipGradient} lg:h-64`}>
+                                    <div className={`flex w-full aspect-square items-center justify-center bg-gradient-to-br ${leadershipGradient}`}>
                                         <Icon className="h-12 w-12 text-white" />
                                     </div>
                                 )}

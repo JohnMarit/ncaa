@@ -3,7 +3,7 @@ import { upcomingEvents as staticUpcomingEvents, pastEvents as staticPastEvents 
 import type { UpcomingEvent, PastEvent } from "@/data/events";
 import { executiveCommittee as staticExecutive, payamRepresentatives as staticPayam } from "@/data/leadership";
 import type { ExecutiveCommitteeMember, PayamRepresentative } from "@/data/leadership";
-import { onAuthStateChanged } from "firebase/auth";
+import { onIdTokenChanged } from "firebase/auth";
 import {
   collection,
   deleteDoc,
@@ -309,15 +309,26 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
+    const unsub = onIdTokenChanged(auth, (user) => {
       if (!user) {
         setIsAdminUser(false);
         return;
       }
+
       user
         .getIdTokenResult()
-        .then((r) => {
-          setIsAdminUser(r?.claims?.admin === true);
+        .then(async (r) => {
+          if (r?.claims?.admin === true) {
+            setIsAdminUser(true);
+            return;
+          }
+
+          try {
+            const refreshed = await user.getIdTokenResult(true);
+            setIsAdminUser(refreshed?.claims?.admin === true);
+          } catch {
+            setIsAdminUser(false);
+          }
         })
         .catch(() => {
           setIsAdminUser(false);
@@ -580,7 +591,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: documents – real-time sync + one-time seed
   useEffect(() => {
@@ -611,14 +622,20 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     });
 
-    const unsub = onSnapshot(query(docsCol), (snap) => {
-      const loaded: DocumentItem[] = [];
-      snap.forEach((d) => {
-        const raw = d.data() as Omit<DocumentItem, "id">;
-        loaded.push({ id: d.id, ...raw });
-      });
-      setDocuments(loaded);
-    });
+    const unsub = onSnapshot(
+      query(docsCol),
+      (snap) => {
+        const loaded: DocumentItem[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<DocumentItem, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        setDocuments(loaded);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsub();
@@ -653,14 +670,20 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     });
 
-    const unsub = onSnapshot(query(scholarshipsCol), (snap) => {
-      const loaded: AdminScholarship[] = [];
-      snap.forEach((d) => {
-        const raw = d.data() as Omit<AdminScholarship, "id">;
-        loaded.push({ id: d.id, ...raw });
-      });
-      setScholarships(loaded);
-    });
+    const unsub = onSnapshot(
+      query(scholarshipsCol),
+      (snap) => {
+        const loaded: AdminScholarship[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<AdminScholarship, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        setScholarships(loaded);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsub();
@@ -712,17 +735,29 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       });
     }
 
-    const unsubExec = onSnapshot(execRef, (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data() as { items?: AdminExecutiveMember[] };
-      if (Array.isArray(data.items)) setExecutiveCommittee(data.items);
-    });
+    const unsubExec = onSnapshot(
+      execRef,
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data() as { items?: AdminExecutiveMember[] };
+        if (Array.isArray(data.items)) setExecutiveCommittee(data.items);
+      },
+      () => {
+        // ignore
+      }
+    );
 
-    const unsubPayam = onSnapshot(payamRef, (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data() as { items?: AdminPayamRepresentative[] };
-      if (Array.isArray(data.items)) setPayamRepresentatives(data.items);
-    });
+    const unsubPayam = onSnapshot(
+      payamRef,
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data() as { items?: AdminPayamRepresentative[] };
+        if (Array.isArray(data.items)) setPayamRepresentatives(data.items);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsubExec();
@@ -765,11 +800,13 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       // ignore
     });
 
-    const unsub = onSnapshot(query(eventsCol), (snap) => {
-      const loaded: AdminEvent[] = [];
-      snap.forEach((d) => {
-        const raw = d.data() as Omit<AdminEvent, "id">;
-        let updated: AdminEvent = { id: d.id, ...raw };
+    const unsub = onSnapshot(
+      query(eventsCol),
+      (snap) => {
+        const loaded: AdminEvent[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<AdminEvent, "id">;
+          let updated: AdminEvent = { id: d.id, ...raw };
 
         // Normalize legacy content changes
         if (updated.title === "International Girls' Day") {
@@ -788,13 +825,17 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
           };
         }
 
-        loaded.push({
-          ...updated,
-          image: updated.image || staticEventImages[updated.title] || undefined,
+          loaded.push({
+            ...updated,
+            image: updated.image || staticEventImages[updated.title] || undefined,
+          });
         });
-      });
-      setEvents(loaded);
-    });
+        setEvents(loaded);
+      },
+      () => {
+        // ignore
+      }
+    );
 
     return () => {
       unsub();

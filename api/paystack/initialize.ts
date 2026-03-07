@@ -6,6 +6,10 @@ type InitBody = {
   currency?: string;
 };
 
+type FxResponse = {
+  rates?: Record<string, number>;
+};
+
 type ReqLike = {
   method?: string;
   body?: any;
@@ -54,14 +58,34 @@ export default async function handler(req: ReqLike, res: ResLike) {
 
     const reference = `donation_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 
+    let fxRateUsdToKes: number | null = null;
+    let amountMinorUnits: number;
+
+    if ((currency || "").toUpperCase() === "KES") {
+      const fxRes = await fetch("https://open.er-api.com/v6/latest/USD");
+      const fxJson = (await fxRes.json().catch(() => null)) as FxResponse | null;
+      const rate = fxJson?.rates?.KES;
+      if (typeof rate !== "number" || !Number.isFinite(rate) || rate <= 0) {
+        res.status(502).json({ error: "Unable to fetch USD to KES exchange rate" });
+        return;
+      }
+      fxRateUsdToKes = rate;
+      amountMinorUnits = Math.round(amount * fxRateUsdToKes * 100);
+    } else {
+      amountMinorUnits = Math.round(amount * 100);
+    }
+
     const payload: Record<string, any> = {
       email,
-      amount: Math.round(amount * 100),
+      amount: amountMinorUnits,
       reference,
       callback_url: `${frontendUrl.replace(/\/$/, "")}/donate?reference=${encodeURIComponent(reference)}`,
       metadata: {
         donorName: typeof body.name === "string" ? body.name : undefined,
         donorPhone: typeof body.phone === "string" ? body.phone : undefined,
+        inputCurrency: "USD",
+        inputAmount: amount,
+        fxRateUsdToKes: fxRateUsdToKes ?? undefined,
         isDonation: true,
       },
     };
@@ -99,6 +123,8 @@ export default async function handler(req: ReqLike, res: ResLike) {
     res.status(200).json({
       authorization_url: paystackJson.data.authorization_url,
       reference,
+      currency: currency ?? null,
+      fxRateUsdToKes,
     });
   } catch (e: any) {
     res.status(500).json({ error: "Server error", details: e?.message ?? String(e) });

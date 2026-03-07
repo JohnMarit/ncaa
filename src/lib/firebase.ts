@@ -14,6 +14,28 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
+const requiredFirebaseConfigKeys: Array<keyof typeof firebaseConfig> = [
+  "apiKey",
+  "authDomain",
+  "projectId",
+  "storageBucket",
+  "messagingSenderId",
+  "appId",
+];
+
+const missingFirebaseConfigKeys = requiredFirebaseConfigKeys.filter((k) => {
+  const value = firebaseConfig[k];
+  return typeof value !== "string" || value.trim().length === 0 || value.includes("your_actual_");
+});
+
+if (missingFirebaseConfigKeys.length > 0) {
+  throw new Error(
+    `Missing Firebase config env vars: ${missingFirebaseConfigKeys
+      .map((k) => `VITE_FIREBASE_${String(k).toUpperCase()}`)
+      .join(", ")}. Create a .env.local file in the project root with your Firebase Web App config values.`
+  );
+}
+
 export const app = initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);

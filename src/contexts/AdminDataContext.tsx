@@ -332,6 +332,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       user
         .getIdTokenResult()
         .then(async (r) => {
+          console.info("AdminDataContext idToken claims", {
+            uid: user.uid,
+            email: user.email,
+            claims: r?.claims,
+          });
           if (r?.claims?.admin === true) {
             setIsAdminUser(true);
             return;
@@ -339,6 +344,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
 
           try {
             const refreshed = await user.getIdTokenResult(true);
+            console.info("AdminDataContext refreshed idToken claims", {
+              uid: user.uid,
+              email: user.email,
+              claims: refreshed?.claims,
+            });
             setIsAdminUser(refreshed?.claims?.admin === true);
           } catch {
             setIsAdminUser(false);
@@ -744,8 +754,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     };
 
     if (isAdminUser) {
-      seedLeadershipIfMissing().catch(() => {
-        console.error("seedLeadershipIfMissing failed");
+      seedLeadershipIfMissing().catch((err) => {
+        console.error("seedLeadershipIfMissing failed", err);
       });
     }
 

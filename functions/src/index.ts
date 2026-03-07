@@ -26,7 +26,10 @@ const adminAuth = getAuth();
 const api = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL,
+  "https://ncaa.org.ss",
   "https://www.ncaa.org.ss",
+  "https://ncaa-d8a7b.web.app",
+  "https://ncaa-d8a7b.firebaseapp.com",
   "http://localhost:5173",
   "http://localhost:3000",
 ].filter(Boolean) as string[];
@@ -53,6 +56,14 @@ const corsMiddleware = cors({
 api.use(corsMiddleware);
 api.options(/.*/, corsMiddleware);
 api.use(express.json({ limit: "1mb" }));
+
+api.use((err: unknown, _req: Request, res: Response, next: (e?: unknown) => void) => {
+  if (err instanceof Error && err.message === "Not allowed by CORS") {
+    res.status(403).json({ error: "Not allowed by CORS" });
+    return;
+  }
+  next(err);
+});
 
 // ─────────────────────────────────────────────
 // Email transporter (Gmail SMTP via App Password)
@@ -257,4 +268,3 @@ api.post("/donations", async (req: Request, res: Response) => {
 });
 
 export const apiV1 = onRequest({ cors: true, secrets: [GMAIL_USER, GMAIL_PASS] }, api);
-

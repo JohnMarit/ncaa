@@ -640,7 +640,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: scholarships – real-time sync + one-time seed
   useEffect(() => {
@@ -688,7 +688,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: leadership (executive + payam) – real-time sync + one-time seed
   useEffect(() => {
@@ -840,7 +840,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Note: leadership + events are Firestore-backed; we intentionally do not persist them to localStorage.
 

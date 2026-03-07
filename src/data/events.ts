@@ -93,7 +93,7 @@ export const pastEvents: PastEvent[] = [
     location: "NCAA Hall, Juba",
     attendees: 180,
     image: nca2Image,
-    description: "A joyous gathering to welcome the new year with traditional Nuer music, dance, and cultural performances. The celebration brought together community members of all ages to reflect on the past year's achievements and set intentions for the year ahead. Traditional foods were served, and elders shared blessings and wisdom with younger generations.",
+    description: "The official launching ceremony for the Nyan Cit Arialbeek uniforms. This event marked the introduction of the new uniforms that represent our community's identity and values. Members gathered to witness the unveiling and celebrate this important milestone for our organization.",
   },
   {
     id: 5,

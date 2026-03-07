@@ -2,11 +2,12 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 
 // ─── Firebase Functions API base URL ──────────────────────────────────────────
 // In dev, Vite proxy or the deployed Function URL. We read from env or fallback.
+const PROJECT_ID = import.meta.env.VITE_FIREBASE_PROJECT_ID;
 const API_BASE =
     import.meta.env.VITE_API_BASE_URL ||
-    "https://us-central1-" +
-    import.meta.env.VITE_FIREBASE_PROJECT_ID +
-    ".cloudfunctions.net/apiV1";
+    (PROJECT_ID
+        ? "https://us-central1-" + PROJECT_ID + ".cloudfunctions.net/apiV1"
+        : "");
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -28,8 +29,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const storedUser = localStorage.getItem("nca_admin_user");
 
         if (storedAuth === "true" && storedUser) {
-            setIsAuthenticated(true);
-            setUser(JSON.parse(storedUser));
+            try {
+                const parsed = JSON.parse(storedUser) as { email?: unknown };
+                if (parsed && typeof parsed === "object" && typeof parsed.email === "string") {
+                    setIsAuthenticated(true);
+                    setUser({ email: parsed.email });
+                } else {
+                    localStorage.removeItem("nca_admin_auth");
+                    localStorage.removeItem("nca_admin_user");
+                }
+            } catch {
+                localStorage.removeItem("nca_admin_auth");
+                localStorage.removeItem("nca_admin_user");
+            }
         }
     }, []);
 
@@ -38,6 +50,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email: string
     ): Promise<{ success: boolean; error?: string }> => {
         try {
+            if (!API_BASE) {
+                return {
+                    success: false,
+                    error: "Missing API configuration (VITE_FIREBASE_PROJECT_ID or VITE_API_BASE_URL).",
+                };
+            }
             const res = await fetch(`${API_BASE}/auth/send-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -62,6 +80,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         otp: string
     ): Promise<{ success: boolean; error?: string }> => {
         try {
+            if (!API_BASE) {
+                return {
+                    success: false,
+                    error: "Missing API configuration (VITE_FIREBASE_PROJECT_ID or VITE_API_BASE_URL).",
+                };
+            }
             const res = await fetch(`${API_BASE}/auth/verify-otp`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

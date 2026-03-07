@@ -126,6 +126,7 @@ const Documents = () => {
     };
 
     const handleDelete = (id: string) => {
+        if (!confirm("Are you sure you want to delete this document?")) return;
         deleteDocument(id);
         toast({
             title: "Document Deleted",

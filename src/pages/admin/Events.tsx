@@ -64,7 +64,7 @@ const Events = () => {
         date: "",
         time: "",
         location: "",
-        image: "",
+        images: [] as string[],
         type: "upcoming" as "upcoming" | "past",
         published: true,
     });
@@ -85,26 +85,32 @@ const Events = () => {
             reader.readAsDataURL(file);
         });
 
-    const handleImageFile = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const handleImagesFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files ?? []);
+        if (files.length === 0) return;
+
         try {
-            const dataUrl = await readFileAsDataUrl(file);
-            setEventForm((prev) => ({ ...prev, image: dataUrl }));
-            toast({ title: "Image added", description: "The image will be saved with the event." });
+            const dataUrls = await Promise.all(files.map((f) => readFileAsDataUrl(f)));
+            setEventForm((prev) => {
+                const merged = [...prev.images, ...dataUrls].slice(0, 5);
+                return { ...prev, images: merged };
+            });
+            toast({
+                title: "Images added",
+                description: "Images will be saved with the event (max 5).",
+            });
         } catch (err) {
             toast({
                 title: "Invalid file",
-                description: err instanceof Error ? err.message : "Please select an image file.",
+                description: err instanceof Error ? err.message : "Please select image files.",
                 variant: "destructive",
             });
         }
         e.target.value = "";
     };
 
-    const clearImage = (inputRef: React.RefObject<HTMLInputElement | null>) => {
-        setEventForm((prev) => ({ ...prev, image: "" }));
-        if (inputRef.current) inputRef.current.value = "";
+    const removeImageAt = (index: number) => {
+        setEventForm((prev) => ({ ...prev, images: prev.images.filter((_, i) => i !== index) }));
     };
 
     const filteredEvents = useMemo(
@@ -153,7 +159,8 @@ const Events = () => {
                 date: eventForm.date,
                 time: eventForm.time.trim(),
                 location: eventForm.location.trim(),
-                image: eventForm.image.trim() || undefined,
+                image: eventForm.images[0] || undefined,
+                images: eventForm.images.length > 0 ? eventForm.images : undefined,
                 type: eventForm.type,
                 attendees: 0,
                 status: eventForm.type === "past" ? "completed" : "active",
@@ -172,7 +179,7 @@ const Events = () => {
                 date: "",
                 time: "",
                 location: "",
-                image: "",
+                images: [],
                 type: "upcoming",
                 published: true,
             });
@@ -199,13 +206,18 @@ const Events = () => {
     };
 
     const handleEditClick = (event: AdminEvent) => {
+        const nextImages = Array.isArray(event.images) && event.images.length > 0
+            ? event.images
+            : event.image
+                ? [event.image]
+                : [];
         setEventForm({
             title: event.title,
             description: event.description,
             date: toDateInputValue(event.date),
             time: event.time || "",
             location: event.location,
-            image: event.image || "",
+            images: nextImages,
             type: event.type ?? (isUpcoming(event) ? "upcoming" : "past"),
             published: event.published !== false,
         });
@@ -238,7 +250,8 @@ const Events = () => {
                 date: eventForm.date,
                 time: eventForm.time.trim(),
                 location: eventForm.location.trim(),
-                image: eventForm.image.trim() || undefined,
+                image: eventForm.images[0] || undefined,
+                images: eventForm.images.length > 0 ? eventForm.images : undefined,
                 type: eventForm.type,
                 status: eventForm.type === "past" ? "completed" : "active",
                 published: eventForm.published,
@@ -258,6 +271,7 @@ const Events = () => {
     };
 
     const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this event?")) return;
         try {
             await deleteEvent(id);
             toast({
@@ -400,32 +414,37 @@ const Events = () => {
                                         )}
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>Event Image (optional)</Label>
+                                        <Label>Event Images (optional, 1-5)</Label>
                                         <input
                                             ref={createImageInputRef}
                                             type="file"
                                             accept="image/*"
+                                            multiple
                                             className="hidden"
                                             id="create-event-image"
-                                            onChange={(e) => handleImageFile(e, false)}
+                                            onChange={handleImagesFiles}
                                         />
-                                        {eventForm.image ? (
-                                            <div className="relative inline-block">
-                                                <img
-                                                    src={eventForm.image}
-                                                    alt="Event preview"
-                                                    className="h-32 w-auto rounded-lg border border-border object-cover"
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="absolute right-1 top-1 h-7 w-7"
-                                                    onClick={() => clearImage(createImageInputRef)}
-                                                    aria-label="Remove image"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
+                                        {eventForm.images.length > 0 ? (
+                                            <div className="flex flex-wrap gap-3">
+                                                {eventForm.images.map((img, idx) => (
+                                                    <div key={idx} className="relative inline-block">
+                                                        <img
+                                                            src={img}
+                                                            alt={idx === 0 ? "Cover image" : `Event image ${idx + 1}`}
+                                                            className="h-24 w-24 rounded-lg border border-border object-cover"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="icon"
+                                                            className="absolute right-1 top-1 h-6 w-6"
+                                                            onClick={() => removeImageAt(idx)}
+                                                            aria-label="Remove image"
+                                                        >
+                                                            <X className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
                                             </div>
                                         ) : null}
                                         <Button
@@ -435,7 +454,7 @@ const Events = () => {
                                             onClick={() => createImageInputRef.current?.click()}
                                         >
                                             <Upload className="mr-2 h-4 w-4" />
-                                            {eventForm.image ? "Change image" : "Upload image"}
+                                            {eventForm.images.length > 0 ? "Add more images" : "Upload images"}
                                         </Button>
                                     </div>
                                     <div className="flex items-center justify-between rounded-lg border border-border p-4">
@@ -553,32 +572,37 @@ const Events = () => {
                                         )}
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label>Event Image (optional)</Label>
+                                        <Label>Event Images (optional, 1-5)</Label>
                                         <input
                                             ref={editImageInputRef}
                                             type="file"
                                             accept="image/*"
+                                            multiple
                                             className="hidden"
                                             id="edit-event-image"
-                                            onChange={(e) => handleImageFile(e, true)}
+                                            onChange={handleImagesFiles}
                                         />
-                                        {eventForm.image ? (
-                                            <div className="relative inline-block">
-                                                <img
-                                                    src={eventForm.image}
-                                                    alt="Event preview"
-                                                    className="h-32 w-auto rounded-lg border border-border object-cover"
-                                                />
-                                                <Button
-                                                    type="button"
-                                                    variant="secondary"
-                                                    size="icon"
-                                                    className="absolute right-1 top-1 h-7 w-7"
-                                                    onClick={() => clearImage(editImageInputRef)}
-                                                    aria-label="Remove image"
-                                                >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
+                                        {eventForm.images.length > 0 ? (
+                                            <div className="flex flex-wrap gap-3">
+                                                {eventForm.images.map((img, idx) => (
+                                                    <div key={idx} className="relative inline-block">
+                                                        <img
+                                                            src={img}
+                                                            alt={idx === 0 ? "Cover image" : `Event image ${idx + 1}`}
+                                                            className="h-24 w-24 rounded-lg border border-border object-cover"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="icon"
+                                                            className="absolute right-1 top-1 h-6 w-6"
+                                                            onClick={() => removeImageAt(idx)}
+                                                            aria-label="Remove image"
+                                                        >
+                                                            <X className="h-3.5 w-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                ))}
                                             </div>
                                         ) : null}
                                         <Button
@@ -588,7 +612,7 @@ const Events = () => {
                                             onClick={() => editImageInputRef.current?.click()}
                                         >
                                             <Upload className="mr-2 h-4 w-4" />
-                                            {eventForm.image ? "Change image" : "Upload image"}
+                                            {eventForm.images.length > 0 ? "Add more images" : "Upload images"}
                                         </Button>
                                     </div>
                                     <div className="flex items-center justify-between rounded-lg border border-border p-4">

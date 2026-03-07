@@ -122,6 +122,8 @@ export interface AdminEvent {
   attendees: number;
   status: "active" | "completed";
   image?: string;
+  /** Optional gallery images (max 5). The first image is treated as the cover. */
+  images?: string[];
   /** ISO timestamp set when an admin explicitly moves an event to Past (used for ordering). */
   pastMarkedAt?: string;
   /** ISO date string; set on create for ordering. */
@@ -828,7 +830,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
             doc(db, FIRESTORE_COLLECTIONS.events, e.id),
             omitUndefined({
               ...e,
-              image: e.image || staticEventImages[e.title] || undefined,
+              images:
+                Array.isArray((e as AdminEvent).images) && (e as AdminEvent).images.length > 0
+                  ? (e as AdminEvent).images.slice(0, 5)
+                  : undefined,
+              image:
+                (Array.isArray((e as AdminEvent).images) && (e as AdminEvent).images[0]) ||
+                e.image ||
+                staticEventImages[e.title] ||
+                undefined,
             }) as Record<string, unknown>
           )
         )
@@ -845,30 +855,53 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         const loaded: AdminEvent[] = [];
         snap.forEach((d) => {
           const raw = d.data() as Omit<AdminEvent, "id">;
-          let updated: AdminEvent = { id: d.id, ...raw };
 
-        // Normalize legacy content changes
-        if (updated.title === "International Girls' Day") {
-          updated = { ...updated, title: "International Women's Day" };
-        }
-        if (updated.description && updated.description.includes("International Girls' Day")) {
-          updated = {
-            ...updated,
-            description: updated.description.replace(/International Girls' Day/g, "International Women's Day"),
+          const rawImages = Array.isArray(raw.images)
+            ? raw.images.filter((v): v is string => typeof v === "string" && v.trim().length > 0).slice(0, 5)
+            : [];
+
+          const cover = raw.image || rawImages[0] || staticEventImages[raw.title] || undefined;
+          const normalizedImages = rawImages.length > 0 ? rawImages : cover ? [cover] : [];
+
+          let updated: AdminEvent = {
+            id: d.id,
+            ...raw,
+            image: cover,
+            images: normalizedImages.length > 0 ? normalizedImages : undefined,
           };
-        }
-        if (updated.description && updated.description.includes("girls' achievements")) {
-          updated = {
-            ...updated,
-            description: updated.description.replace(/girls' achievements/g, "women's achievements"),
-          };
-        }
+
+          // Normalize legacy content changes
+          if (updated.title === "International Girls' Day") {
+            updated = { ...updated, title: "International Women's Day" };
+          }
+          if (updated.description && updated.description.includes("International Girls' Day")) {
+            updated = {
+              ...updated,
+              description: updated.description.replace(/International Girls' Day/g, "International Women's Day"),
+            };
+          }
+          if (updated.description && updated.description.includes("girls' achievements")) {
+            updated = {
+              ...updated,
+              description: updated.description.replace(/girls' achievements/g, "women's achievements"),
+            };
+          }
+
+          const finalCover = updated.image || staticEventImages[updated.title] || undefined;
+          const finalImages =
+            Array.isArray(updated.images) && updated.images.length > 0
+              ? updated.images
+              : finalCover
+                ? [finalCover]
+                : undefined;
 
           loaded.push({
             ...updated,
-            image: updated.image || staticEventImages[updated.title] || undefined,
+            image: finalCover,
+            images: finalImages,
           });
         });
+
         setEvents(loaded);
       },
       (err) => {
@@ -1130,6 +1163,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     eventDate.setHours(0, 0, 0, 0);
     const dateDerivedType: "upcoming" | "past" = eventDate >= today ? "upcoming" : "past";
     const type: "upcoming" | "past" = input.type ?? dateDerivedType;
+    const images = Array.isArray((input as AdminEvent).images)
+      ? ((input as AdminEvent).images as string[]).filter(Boolean).slice(0, 5)
+      : [];
+
+    const coverImage = images[0] || input.image;
     const event: AdminEvent = {
       id: crypto.randomUUID(),
       title: input.title,
@@ -1140,7 +1178,8 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       type,
       attendees: input.attendees ?? 0,
       status: input.status ?? (type === "past" ? "completed" : "active"),
-      ...(input.image !== undefined && { image: input.image }),
+      ...(coverImage !== undefined && { image: coverImage }),
+      ...(images.length > 0 && { images }),
       createdAt: new Date().toISOString(),
       published: input.published ?? true,
     };
@@ -1152,9 +1191,25 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
 
   const updateEvent: AdminDataContextType["updateEvent"] = async (id, updates) => {
     requireAdminSession();
+
+    const next: Record<string, unknown> = { ...(updates as unknown as Record<string, unknown>) };
+
+    if ("images" in next) {
+      const rawImages = Array.isArray(next.images) ? (next.images as unknown[]) : [];
+      const normalized = rawImages
+        .filter((v): v is string => typeof v === "string" && v.trim().length > 0)
+        .slice(0, 5);
+      next.images = normalized.length > 0 ? normalized : undefined;
+
+      // Keep cover in sync if it wasn't explicitly set.
+      if (!("image" in next)) {
+        next.image = normalized[0] || undefined;
+      }
+    }
+
     await updateDoc(
       doc(db, FIRESTORE_COLLECTIONS.events, id),
-      omitUndefined(updates as unknown as Record<string, unknown>)
+      omitUndefined(next)
     );
   };
 

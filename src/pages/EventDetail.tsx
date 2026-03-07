@@ -10,6 +10,11 @@ const EventDetail = () => {
   const { events } = useAdminData();
   const published = events.filter((e) => e.published !== false);
   const event = id ? published.find((e) => e.id === id) : null;
+  const gallery = event?.images && event.images.length > 0
+    ? event.images
+    : event?.image
+      ? [event.image]
+      : [];
 
   if (!event) {
     return (
@@ -65,10 +70,10 @@ const EventDetail = () => {
 
         <section className="py-12 md:py-16">
           <div className="container max-w-3xl">
-            {event.image && (
+            {gallery[0] && (
               <div className="mb-8 rounded-xl overflow-hidden border border-border shadow-sm">
                 <img
-                  src={event.image}
+                  src={gallery[0]}
                   alt={event.title}
                   className="w-full h-auto object-cover max-h-[400px]"
                   onError={(e) => {
@@ -76,6 +81,26 @@ const EventDetail = () => {
                     target.style.display = "none";
                   }}
                 />
+              </div>
+            )}
+
+            {gallery.length > 1 && (
+              <div className="mb-8">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {gallery.slice(1).map((img, idx) => (
+                    <div key={idx} className="rounded-xl overflow-hidden border border-border shadow-sm">
+                      <img
+                        src={img}
+                        alt={`${event.title} image ${idx + 2}`}
+                        className="w-full h-36 object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             <div className="prose prose-neutral dark:prose-invert max-w-none">

@@ -88,7 +88,7 @@ export const pastEvents: PastEvent[] = [
   },
   {
     id: 4,
-    title: "New Year Celebration",
+    title: "Nyan Cit Arialbeek Uniform Launching",
     date: "January 1, 2025",
     location: "NCAA Hall, Juba",
     attendees: 180,

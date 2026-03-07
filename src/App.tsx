@@ -29,7 +29,7 @@ import DonationPayment from "./pages/DonationPayment";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
-import CreateAccount from "./pages/auth/CreateAccount";
+
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminMembers from "./pages/admin/Members";
 import AdminEvents from "./pages/admin/Events";
@@ -50,56 +50,56 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-        <AuthProvider>
-          <AdminDataProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <ScrollToTop />
-              <WhatsAppChat />
-              <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/leadership" element={<Leadership />} />
-          <Route path="/governance" element={<Governance />} />
-          <Route path="/membership" element={<Membership />} />
-          <Route path="/membership/payment" element={<MembershipPayment />} />
-          <Route path="/scholarship" element={<Scholarship />} />
-          <Route path="/scholarship/apply" element={<ScholarshipApplication />} />
-          <Route path="/elections" element={<Elections />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/events/upcoming" element={<UpcomingEvents />} />
-          <Route path="/events/past" element={<PastEvents />} />
-          <Route path="/events/event/:id" element={<EventDetail />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/portal" element={<MemberPortal />} />
-          <Route path="/payments" element={<Payments />} />
-          <Route path="/directory" element={<Directory />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/donate" element={<Donate />} />
-          <Route path="/donate/payment" element={<DonationPayment />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/create-account" element={<CreateAccount />} />
-          {/* Admin Routes - Only accessible through /admin */}
-          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-          <Route path="/admin/members" element={<AdminRoute><AdminMembers /></AdminRoute>} />
-          <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
-          <Route path="/admin/scholarships" element={<AdminRoute><AdminScholarships /></AdminRoute>} />
-          <Route path="/admin/elections" element={<AdminRoute><AdminElections /></AdminRoute>} />
-          <Route path="/admin/leadership" element={<AdminRoute><AdminLeadership /></AdminRoute>} />
-          <Route path="/admin/documents" element={<AdminRoute><AdminDocuments /></AdminRoute>} />
-          <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
-          <Route path="/admin/notifications" element={<AdminRoute><AdminNotifications /></AdminRoute>} />
-          <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
-          {/* Catch-all 404 route */}
-          <Route path="*" element={<NotFound />} />
-              </Routes>
-            </BrowserRouter>
-          </AdminDataProvider>
-        </AuthProvider>
+      <AuthProvider>
+        <AdminDataProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <ScrollToTop />
+            <WhatsAppChat />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/leadership" element={<Leadership />} />
+              <Route path="/governance" element={<Governance />} />
+              <Route path="/membership" element={<Membership />} />
+              <Route path="/membership/payment" element={<MembershipPayment />} />
+              <Route path="/scholarship" element={<Scholarship />} />
+              <Route path="/scholarship/apply" element={<ScholarshipApplication />} />
+              <Route path="/elections" element={<Elections />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/upcoming" element={<UpcomingEvents />} />
+              <Route path="/events/past" element={<PastEvents />} />
+              <Route path="/events/event/:id" element={<EventDetail />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/portal" element={<MemberPortal />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/directory" element={<Directory />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/donate" element={<Donate />} />
+              <Route path="/donate/payment" element={<DonationPayment />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+
+              {/* Admin Routes - Only accessible through /admin */}
+              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/admin/members" element={<AdminRoute><AdminMembers /></AdminRoute>} />
+              <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
+              <Route path="/admin/scholarships" element={<AdminRoute><AdminScholarships /></AdminRoute>} />
+              <Route path="/admin/elections" element={<AdminRoute><AdminElections /></AdminRoute>} />
+              <Route path="/admin/leadership" element={<AdminRoute><AdminLeadership /></AdminRoute>} />
+              <Route path="/admin/documents" element={<AdminRoute><AdminDocuments /></AdminRoute>} />
+              <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
+              <Route path="/admin/notifications" element={<AdminRoute><AdminNotifications /></AdminRoute>} />
+              <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+              {/* Catch-all 404 route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AdminDataProvider>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

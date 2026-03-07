@@ -8,22 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import PaystackDonation from "@/components/PaystackDonation";
 
 const Donate = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [amount, setAmount] = useState("");
-    const [currency, setCurrency] = useState<"USD" | "SSP">("USD");
     const [donorName, setDonorName] = useState("");
     const [donorEmail, setDonorEmail] = useState("");
     const [donorPhone, setDonorPhone] = useState("");
     const [paymentMethod, setPaymentMethod] = useState("paystack");
     const [isProcessing, setIsProcessing] = useState(false);
-    const [showPaystack, setShowPaystack] = useState(false);
     const { toast } = useToast();
     const amountInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,9 +48,7 @@ const Donate = () => {
         } catch {
         }
 
-        setShowPaystack(false);
         setAmount("");
-        setCurrency("USD");
         setDonorName("");
         setDonorEmail("");
         setDonorPhone("");
@@ -66,6 +60,62 @@ const Donate = () => {
 
         navigate("/");
     }, [location.pathname, location.search, navigate, toast]);
+
+    const initializePaystackAndRedirect = async (args: {
+        amount: number;
+        email: string;
+        name: string;
+        phone?: string;
+        currency: "USD";
+    }) => {
+        setIsProcessing(true);
+        try {
+            const resp = await fetch("/api/paystack/initialize", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(args),
+            });
+
+            const data = await resp.json().catch(() => null);
+            if (!resp.ok) {
+                toast({
+                    title: "Payment setup failed",
+                    description: data?.error ?? "Unable to initialize Paystack transaction.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            const authorizationUrl = data?.authorization_url as string | undefined;
+            const reference = data?.reference as string | undefined;
+
+            if (!authorizationUrl) {
+                toast({
+                    title: "Payment setup failed",
+                    description: "Missing Paystack authorization URL.",
+                    variant: "destructive",
+                });
+                return;
+            }
+
+            if (reference) {
+                try {
+                    sessionStorage.setItem("paystack_reference", reference);
+                } catch {
+                }
+            }
+
+            window.location.assign(authorizationUrl);
+        } catch (e: any) {
+            toast({
+                title: "Payment setup failed",
+                description: e?.message ?? "Network error.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -104,39 +154,15 @@ const Donate = () => {
 
         // Handle Paystack payment
         if (paymentMethod === "paystack") {
-            if (currency === "SSP") {
-                toast({
-                    title: "Currency not supported",
-                    description: "Paystack does not support SSP. Switching to USD for Paystack payment.",
-                });
-                setCurrency("USD");
-            }
-            setShowPaystack(true);
+            await initializePaystackAndRedirect({
+                amount: numericAmount,
+                email: donorEmail,
+                name: donorName,
+                phone: donorPhone || undefined,
+                currency: "USD",
+            });
             return;
         }
-
-        setShowPaystack(true);
-    };
-
-    const handlePaystackSuccess = (reference: string) => {
-        setShowPaystack(false);
-        // Reset form
-        setAmount("");
-        setCurrency("USD");
-        setDonorName("");
-        setDonorEmail("");
-        setDonorPhone("");
-
-        toast({
-            title: "Donation completed",
-            description: `Reference: ${reference}`,
-        });
-
-        navigate("/");
-    };
-
-    const handlePaystackClose = () => {
-        setShowPaystack(false);
     };
 
     return (
@@ -185,7 +211,7 @@ const Donate = () => {
                                                 <Label className="text-base font-semibold">Donation Amount *</Label>
                                                 <div className="flex gap-3">
                                                     <div className="flex-1 space-y-2">
-                                                        <Label htmlFor="donationAmount">Amount</Label>
+                                                        <Label htmlFor="donationAmount">Amount (USD)</Label>
                                                         <Input
                                                             id="donationAmount"
                                                             ref={amountInputRef}
@@ -198,18 +224,6 @@ const Donate = () => {
                                                             }}
                                                             required
                                                         />
-                                                    </div>
-                                                    <div className="w-32 space-y-2">
-                                                        <Label htmlFor="currency">Currency</Label>
-                                                        <Select value={currency} onValueChange={(value: "USD" | "SSP") => setCurrency(value)}>
-                                                            <SelectTrigger id="currency">
-                                                                <SelectValue placeholder="Currency" />
-                                                            </SelectTrigger>
-                                                            <SelectContent>
-                                                                <SelectItem value="USD">USD</SelectItem>
-                                                                <SelectItem value="SSP">SSP</SelectItem>
-                                                            </SelectContent>
-                                                        </Select>
                                                     </div>
                                                 </div>
                                             </div>
@@ -261,7 +275,6 @@ const Donate = () => {
                                                 <h3 className="font-semibold">Payment Method *</h3>
                                                 <RadioGroup value={paymentMethod} onValueChange={(value) => {
                                                     setPaymentMethod(value);
-                                                    setShowPaystack(false);
                                                 }}>
                                                     <div className="space-y-3">
                                                         <div className="flex items-center space-x-2 rounded-lg border border-border bg-card p-4">
@@ -286,37 +299,16 @@ const Donate = () => {
                                             </div>
 
                                             {/* Submit Button */}
-                                            {showPaystack && paymentMethod === "paystack" ? (
-                                                <div className="space-y-3">
-                                                    <PaystackDonation
-                                                        amount={parseFloat(amount.replace(/,/g, ""))}
-                                                        email={donorEmail}
-                                                        name={donorName}
-                                                        phone={donorPhone}
-                                                        onSuccess={handlePaystackSuccess}
-                                                        onClose={handlePaystackClose}
-                                                    />
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        className="w-full"
-                                                        onClick={handlePaystackClose}
-                                                    >
-                                                        Cancel
-                                                    </Button>
-                                                </div>
-                                            ) : (
-                                                <Button type="submit" size="lg" className="w-full" disabled={isProcessing}>
-                                                    {isProcessing ? (
-                                                        "Processing..."
-                                                    ) : (
-                                                        <>
-                                                            <Heart className="mr-2 h-5 w-5" />
-                                                            Continue
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            )}
+                                            <Button type="submit" size="lg" className="w-full" disabled={isProcessing}>
+                                                {isProcessing ? (
+                                                    "Redirecting..."
+                                                ) : (
+                                                    <>
+                                                        <Heart className="mr-2 h-5 w-5" />
+                                                        Donate with Card
+                                                    </>
+                                                )}
+                                            </Button>
                                         </form>
                                     </CardContent>
                                 </Card>

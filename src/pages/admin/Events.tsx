@@ -156,6 +156,7 @@ const Events = () => {
             type: eventForm.type,
             attendees: 0,
             status: eventForm.type === "past" ? "completed" : "active",
+            pastMarkedAt: eventForm.type === "past" ? new Date().toISOString() : undefined,
             published: eventForm.published,
         });
         toast({
@@ -253,6 +254,7 @@ const Events = () => {
         updateEvent(event.id, {
             type: nextType,
             status: nextType === "past" ? "completed" : "active",
+            pastMarkedAt: nextType === "past" ? new Date().toISOString() : undefined,
         });
         toast({
             title: "Event Updated",

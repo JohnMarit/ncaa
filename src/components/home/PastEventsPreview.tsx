@@ -15,9 +15,15 @@ export const PastEventsPreview = () => {
     const { pastEvents } = usePublicEvents();
     const previewEvents = useMemo(() => {
         const withImages = pastEvents.filter((e) => e.image);
-        return FEATURED_PAST_EVENT_TITLES.map((title) => withImages.find((e) => e.title === title)).filter(
-            (e): e is NonNullable<typeof e> => e != null
-        );
+        const featured = FEATURED_PAST_EVENT_TITLES
+            .map((title) => withImages.find((e) => e.title === title))
+            .filter((e): e is NonNullable<typeof e> => e != null);
+
+        // If admin adds/marks new past events, show the most recent past events first.
+        if (featured.length === 0) {
+            return withImages.slice(0, 3);
+        }
+        return featured;
     }, [pastEvents]);
     const [needsReadMore, setNeedsReadMore] = useState<Set<string>>(new Set());
     const descriptionRefs = useRef<Record<string, HTMLParagraphElement | null>>({});

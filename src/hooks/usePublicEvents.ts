@@ -52,7 +52,16 @@ export function usePublicEvents(): {
       else past.push(e);
     }
     upcoming.sort((a, b) => parseEventDate(a.date).getTime() - parseEventDate(b.date).getTime());
-    past.sort((a, b) => parseEventDate(b.date).getTime() - parseEventDate(a.date).getTime());
+    past.sort((a, b) => {
+      const aMarked = a.pastMarkedAt ? new Date(a.pastMarkedAt).getTime() : NaN;
+      const bMarked = b.pastMarkedAt ? new Date(b.pastMarkedAt).getTime() : NaN;
+      const aHasMarked = !Number.isNaN(aMarked);
+      const bHasMarked = !Number.isNaN(bMarked);
+      if (aHasMarked && bHasMarked) return bMarked - aMarked;
+      if (aHasMarked && !bHasMarked) return -1;
+      if (!aHasMarked && bHasMarked) return 1;
+      return parseEventDate(b.date).getTime() - parseEventDate(a.date).getTime();
+    });
     return { upcomingEvents: upcoming, pastEvents: past };
   }, [events]);
 }

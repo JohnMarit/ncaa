@@ -106,6 +106,8 @@ export interface AdminEvent {
   attendees: number;
   status: "active" | "completed";
   image?: string;
+  /** ISO timestamp set when an admin explicitly moves an event to Past (used for ordering). */
+  pastMarkedAt?: string;
   /** ISO date string; set on create for ordering. */
   createdAt?: string;
   /** If true, event is shown on public site. Draft events are admin-only. */

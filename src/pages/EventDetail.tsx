@@ -10,6 +10,14 @@ const EventDetail = () => {
   const { events } = useAdminData();
   const published = events.filter((e) => e.published !== false);
   const event = id ? published.find((e) => e.id === id) : null;
+
+  const toParagraphs = (text: string): string[] => {
+    const normalized = text.replace(/\r\n/g, "\n");
+    const parts = normalized.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) return parts;
+    return normalized.split("\n").map((p) => p.trim()).filter(Boolean);
+  };
+
   const gallery = event?.images && event.images.length > 0
     ? event.images
     : event?.image
@@ -104,9 +112,13 @@ const EventDetail = () => {
               </div>
             )}
             <div className="prose prose-neutral dark:prose-invert max-w-none">
-              <p className="text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                {event.description}
-              </p>
+              <div className="space-y-3">
+                {toParagraphs(event.description).map((p, idx) => (
+                  <p key={idx} className="text-muted-foreground leading-relaxed">
+                    {p}
+                  </p>
+                ))}
+              </div>
             </div>
           </div>
         </section>

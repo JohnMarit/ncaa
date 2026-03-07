@@ -8,6 +8,13 @@ import { usePublicEvents } from "@/hooks/usePublicEvents";
 const Events = () => {
   const { upcomingEvents, pastEvents } = usePublicEvents();
 
+  const toParagraphs = (text: string): string[] => {
+    const normalized = text.replace(/\r\n/g, "\n");
+    const parts = normalized.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 1) return parts;
+    return normalized.split("\n").map((p) => p.trim()).filter(Boolean);
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -62,7 +69,11 @@ const Events = () => {
                         <div className={`p-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between ${event.image ? "md:w-2/3" : "w-full"}`}>
                           <div className="flex-1">
                             <h3 className="mb-3 font-heading text-2xl font-bold">{event.title}</h3>
-                            <p className="mb-4 text-muted-foreground">{event.description}</p>
+                            <div className="mb-4 space-y-3 text-muted-foreground">
+                              {toParagraphs(event.description).map((p, idx) => (
+                                <p key={idx}>{p}</p>
+                              ))}
+                            </div>
                             <div className="space-y-2">
                               <div className="flex items-center gap-2 text-sm">
                                 <Calendar className="h-4 w-4 text-primary" />
@@ -117,7 +128,11 @@ const Events = () => {
                         <div className={`p-6 ${event.image ? "md:w-2/3" : "w-full"}`}>
                           <h3 className="mb-3 font-heading text-xl font-bold">{event.title}</h3>
                           {event.description && (
-                            <p className="mb-4 text-muted-foreground">{event.description}</p>
+                            <div className="mb-4 space-y-3 text-muted-foreground">
+                              {toParagraphs(event.description).map((p, idx) => (
+                                <p key={idx}>{p}</p>
+                              ))}
+                            </div>
                           )}
                           <div className="space-y-2">
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">

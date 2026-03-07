@@ -83,7 +83,7 @@ export function HeroSection() {
               </Link>
             </Button>
             <Button variant="heroOutline" size="lg" className="text-sm sm:text-base h-11 sm:h-14 px-3 sm:px-10 shrink basis-auto min-w-fit" asChild>
-              <Link to="/about">Learn About TEGA</Link>
+              <Link to="/about">Learn More about NCAA</Link>
             </Button>
           </div>
 

@@ -491,6 +491,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const electionsCol = collection(db, FIRESTORE_COLLECTIONS.elections);
 
     const seedElectionsIfEmpty = async () => {
+      if (!isAdminUser) return;
       const snap = await getDocs(query(electionsCol));
       if (!snap.empty) return;
 
@@ -531,7 +532,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: nominations – real-time sync + one-time seed
   useEffect(() => {
@@ -586,6 +587,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const docsCol = collection(db, FIRESTORE_COLLECTIONS.documents);
 
     const seedDocumentsIfEmpty = async () => {
+      if (!isAdminUser) return;
       const snap = await getDocs(query(docsCol));
       if (!snap.empty) return;
 
@@ -628,6 +630,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     const scholarshipsCol = collection(db, FIRESTORE_COLLECTIONS.scholarships);
 
     const seedScholarshipsIfEmpty = async () => {
+      if (!isAdminUser) return;
       const snap = await getDocs(query(scholarshipsCol));
       if (!snap.empty) return;
 
@@ -703,9 +706,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    seedLeadershipIfMissing().catch(() => {
-      // ignore; subscriptions will still attempt to read.
-    });
+    if (isAdminUser) {
+      seedLeadershipIfMissing().catch(() => {
+        // ignore; subscriptions will still attempt to read.
+      });
+    }
 
     const unsubExec = onSnapshot(execRef, (snap) => {
       if (!snap.exists()) return;
@@ -723,13 +728,14 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       unsubExec();
       unsubPayam();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: events – real-time sync + one-time seed
   useEffect(() => {
     const eventsCol = collection(db, FIRESTORE_COLLECTIONS.events);
 
     const seedEventsIfEmpty = async () => {
+      if (!isAdminUser) return;
       const snap = await getDocs(query(eventsCol));
       if (!snap.empty) return;
 

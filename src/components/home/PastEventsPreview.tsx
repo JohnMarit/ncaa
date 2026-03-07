@@ -1,30 +1,12 @@
-import { useRef, useEffect, useState, useMemo } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Calendar, MapPin } from "lucide-react";
 import { usePublicEvents } from "@/hooks/usePublicEvents";
 
-/** Top 3 past events to show on homepage, in this order (only those with images are included). */
-const FEATURED_PAST_EVENT_TITLES = [
-    "NCAA Annual Trade Fair",
-    "Visit to Panyagoor",
-    "Quarterly Financial Review",
-];
-
 export const PastEventsPreview = () => {
     const { pastEvents } = usePublicEvents();
-    const previewEvents = useMemo(() => {
-        const withImages = pastEvents.filter((e) => e.image);
-        const featured = FEATURED_PAST_EVENT_TITLES
-            .map((title) => withImages.find((e) => e.title === title))
-            .filter((e): e is NonNullable<typeof e> => e != null);
-
-        // If admin adds/marks new past events, show the most recent past events first.
-        if (featured.length === 0) {
-            return withImages.slice(0, 3);
-        }
-        return featured;
-    }, [pastEvents]);
+    const previewEvents = pastEvents.slice(0, 3);
     const [needsReadMore, setNeedsReadMore] = useState<Set<string>>(new Set());
     const descriptionRefs = useRef<Record<string, HTMLParagraphElement | null>>({});
 
@@ -45,7 +27,7 @@ export const PastEventsPreview = () => {
             setNeedsReadMore(newNeedsReadMore);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [previewEvents, needsReadMore.size]);
 
     const shouldShowReadMore = (eventId: string) => needsReadMore.has(eventId);
 
@@ -72,10 +54,10 @@ export const PastEventsPreview = () => {
                             key={event.id}
                             className="rounded-xl border border-border bg-background overflow-hidden shadow-sm transition-all hover:shadow-md"
                         >
-                            {event.image && (
+                            {event.image ? (
                                 <div className="w-full h-64">
-                                    <img 
-                                        src={event.image} 
+                                    <img
+                                        src={event.image}
                                         alt={event.title}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
@@ -84,6 +66,8 @@ export const PastEventsPreview = () => {
                                         }}
                                     />
                                 </div>
+                            ) : (
+                                <div className="w-full h-64 bg-muted/50" aria-hidden />
                             )}
                             <div className="p-6">
                                 <h3 className="mb-3 font-heading text-lg font-bold">{event.title}</h3>

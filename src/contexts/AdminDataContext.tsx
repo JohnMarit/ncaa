@@ -322,9 +322,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const omitUndefined = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
-    const next: Partial<T> = {};
-    (Object.keys(obj) as Array<keyof T>).forEach((k) => {
+  const omitUndefined = (obj: Record<string, unknown>): Record<string, unknown> => {
+    const next: Record<string, unknown> = {};
+    Object.keys(obj).forEach((k) => {
       const v = obj[k];
       if (v !== undefined) next[k] = v;
     });
@@ -1144,14 +1144,17 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       createdAt: new Date().toISOString(),
       published: input.published ?? true,
     };
-    await setDoc(doc(db, FIRESTORE_COLLECTIONS.events, event.id), omitUndefined(event) as Record<string, unknown>);
+    await setDoc(
+      doc(db, FIRESTORE_COLLECTIONS.events, event.id),
+      omitUndefined(event as unknown as Record<string, unknown>)
+    );
   };
 
   const updateEvent: AdminDataContextType["updateEvent"] = async (id, updates) => {
     requireAdminSession();
     await updateDoc(
       doc(db, FIRESTORE_COLLECTIONS.events, id),
-      omitUndefined(updates as Record<string, unknown>) as Record<string, unknown>
+      omitUndefined(updates as unknown as Record<string, unknown>)
     );
   };
 

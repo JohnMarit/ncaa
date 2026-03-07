@@ -40,7 +40,7 @@ export const LeadershipPreview = () => {
 
     // Display only the top 3 executive committee members
     // This data is sourced from the centralized leadership data
-    const topThreeLeaders = (adminExecutive.length > 0
+    const leadersSource = adminExecutive.length > 0
         ? adminExecutive.map((m) => {
             const staticMatch = executiveCommittee.find((s) => s.name === m.name);
             const Icon = m.icon && iconMap[m.icon] ? iconMap[m.icon] : staticMatch?.icon ?? UserCircle;
@@ -52,8 +52,23 @@ export const LeadershipPreview = () => {
                 image: m.image ?? staticMatch?.image,
             };
         })
-        : executiveCommittee
-    ).slice(0, 3);
+        : executiveCommittee;
+
+    const normalizePosition = (p: string) => p.trim().toLowerCase();
+    const desiredPositions = ["chairlady", "deputy chairlady", "secretary", "secretary general"];
+
+    const selected = desiredPositions
+        .map((pos) =>
+            leadersSource.find((m) => {
+                const actual = normalizePosition(m.position);
+                return actual === pos || (pos === "secretary" && actual.startsWith("secretary"));
+            })
+        )
+        .filter(Boolean) as typeof leadersSource;
+
+    const selectedNames = new Set(selected.map((m) => m.name));
+    const fill = leadersSource.filter((m) => !selectedNames.has(m.name));
+    const topThreeLeaders = [...selected, ...fill].slice(0, 3);
     const [selectedMember, setSelectedMember] = useState<{
         image: string;
         name: string;

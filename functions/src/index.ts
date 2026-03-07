@@ -7,6 +7,7 @@ import { setGlobalOptions } from "firebase-functions";
 import { onRequest } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
 import express, { Request, Response } from "express";
+import cors from "cors";
 import { initializeApp as initializeAdminApp } from "firebase-admin/app";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import * as nodemailer from "nodemailer";
@@ -17,6 +18,34 @@ initializeAdminApp();
 const adminDb = getFirestore();
 
 const api = express();
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  "https://www.ncaa.org.ss",
+  "http://localhost:5173",
+  "http://localhost:3000",
+].filter(Boolean) as string[];
+
+const corsMiddleware = cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (no Origin) and same-origin.
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "POST", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+});
+
+api.use(corsMiddleware);
+api.options(/.*/, corsMiddleware);
 api.use(express.json({ limit: "1mb" }));
 
 // ─────────────────────────────────────────────

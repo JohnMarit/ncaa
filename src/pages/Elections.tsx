@@ -4,7 +4,8 @@ import { Vote, Users, Award, Calendar, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
-import { electionProcess, activeElections } from "@/data/elections";
+import { electionProcess } from "@/data/elections";
+import { useAdminData } from "@/contexts/AdminDataContext";
 
 // Mock data for past elections - TODO: Replace with API call
 const pastElections = [
@@ -25,6 +26,10 @@ const pastElections = [
 ];
 
 const Elections = () => {
+    const { elections } = useAdminData();
+
+    const activeElections = elections.filter((e) => e.status !== "Completed");
+
     return (
         <div className="flex min-h-screen flex-col">
             <Header />

@@ -37,18 +37,18 @@ export function Header() {
       children: [
         { name: "Leadership", href: "/leadership", key: "leadership" },
         { name: "Governance", href: "/governance", key: "governance" },
-        { name: "Membership", href: "/membership", key: "membership" },
       ],
     },
     {
       name: "Events",
       key: "events",
       children: [
-        { name: "Elections", href: "/elections", key: "elections" },
         { name: "Upcoming Events", href: "/events/upcoming", key: "upcoming" },
         { name: "Past Events", href: "/events/past", key: "past" },
+        { name: "Elections", href: "/elections", key: "elections" },
       ],
     },
+    { name: "Join NCAA", href: "/membership", key: "join" },
     { name: "Scholarship", href: "/scholarship", key: "scholarship" },
     { name: "Contact", href: "/contact", key: "contact" },
   ];

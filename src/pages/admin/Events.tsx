@@ -79,6 +79,10 @@ const Events = () => {
                 reject(new Error("Please select an image file (e.g. JPG, PNG)."));
                 return;
             }
+            if (file.size > 2 * 1024 * 1024) {
+                reject(new Error("Each image must be 2MB or smaller."));
+                return;
+            }
             const reader = new FileReader();
             reader.onload = () => resolve(reader.result as string);
             reader.onerror = () => reject(new Error("Failed to read file."));

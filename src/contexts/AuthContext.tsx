@@ -147,14 +147,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }),
             });
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                return { success: false, error: data.error ?? "Verification failed." };
+            const rawText = await res.text();
+            let data: any = null;
+            try {
+                data = rawText ? JSON.parse(rawText) : null;
+            } catch {
+                data = null;
             }
 
-            if (!data.firebaseToken || typeof data.firebaseToken !== "string") {
-                return { success: false, error: "Missing Firebase token. Please try again." };
+            if (!res.ok) {
+                const errorFromBody = data && typeof data === "object" ? (data.error as unknown) : undefined;
+                return {
+                    success: false,
+                    error:
+                        (typeof errorFromBody === "string" && errorFromBody) ||
+                        `Verification failed (HTTP ${res.status}).`,
+                };
+            }
+
+            if (!data || typeof data !== "object" || !data.firebaseToken || typeof data.firebaseToken !== "string") {
+                const snippet = rawText.length > 300 ? rawText.slice(0, 300) + "…" : rawText;
+                console.error("verify-otp did not return firebaseToken", {
+                    url: `${API_BASE}/auth/verify-otp`,
+                    status: res.status,
+                    responseSnippet: snippet,
+                });
+                return {
+                    success: false,
+                    error: "Missing Firebase token. Please try again.",
+                };
             }
 
             // Sign into Firebase Auth so we can write to Firestore with admin rules.

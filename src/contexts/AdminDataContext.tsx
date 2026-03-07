@@ -322,6 +322,15 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const omitUndefined = <T extends Record<string, unknown>>(obj: T): Partial<T> => {
+    const next: Partial<T> = {};
+    (Object.keys(obj) as Array<keyof T>).forEach((k) => {
+      const v = obj[k];
+      if (v !== undefined) next[k] = v;
+    });
+    return next;
+  };
+
   useEffect(() => {
     const unsub = onIdTokenChanged(auth, (user) => {
       if (!user) {
@@ -815,10 +824,13 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
 
       await Promise.all(
         seed.map((e) =>
-          setDoc(doc(db, FIRESTORE_COLLECTIONS.events, e.id), {
-            ...e,
-            image: e.image || staticEventImages[e.title] || undefined,
-          })
+          setDoc(
+            doc(db, FIRESTORE_COLLECTIONS.events, e.id),
+            omitUndefined({
+              ...e,
+              image: e.image || staticEventImages[e.title] || undefined,
+            }) as Record<string, unknown>
+          )
         )
       );
     };
@@ -1128,16 +1140,19 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       type,
       attendees: input.attendees ?? 0,
       status: input.status ?? (type === "past" ? "completed" : "active"),
-      image: input.image,
+      ...(input.image !== undefined && { image: input.image }),
       createdAt: new Date().toISOString(),
       published: input.published ?? true,
     };
-    await setDoc(doc(db, FIRESTORE_COLLECTIONS.events, event.id), event);
+    await setDoc(doc(db, FIRESTORE_COLLECTIONS.events, event.id), omitUndefined(event) as Record<string, unknown>);
   };
 
   const updateEvent: AdminDataContextType["updateEvent"] = async (id, updates) => {
     requireAdminSession();
-    await updateDoc(doc(db, FIRESTORE_COLLECTIONS.events, id), updates as Record<string, unknown>);
+    await updateDoc(
+      doc(db, FIRESTORE_COLLECTIONS.events, id),
+      omitUndefined(updates as Record<string, unknown>) as Record<string, unknown>
+    );
   };
 
   const deleteEvent: AdminDataContextType["deleteEvent"] = async (id) => {

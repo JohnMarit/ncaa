@@ -6,6 +6,7 @@
 import { setGlobalOptions } from "firebase-functions";
 import { onRequest } from "firebase-functions/https";
 import * as logger from "firebase-functions/logger";
+import { defineSecret } from "firebase-functions/params";
 import express, { Request, Response } from "express";
 import cors from "cors";
 import { initializeApp as initializeAdminApp } from "firebase-admin/app";
@@ -13,6 +14,9 @@ import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import * as nodemailer from "nodemailer";
 
 setGlobalOptions({ maxInstances: 10 });
+
+const GMAIL_USER = defineSecret("GMAIL_USER");
+const GMAIL_PASS = defineSecret("GMAIL_PASS");
 
 initializeAdminApp();
 const adminDb = getFirestore();
@@ -56,8 +60,8 @@ function getTransporter() {
   return nodemailer.createTransport({
     service: "gmail",
     auth: {
-      user: process.env.GMAIL_USER,   // e.g. johnmarit42@gmail.com
-      pass: process.env.GMAIL_PASS,   // Gmail App Password (16 chars)
+      user: GMAIL_USER.value(),   // e.g. johnmarit42@gmail.com
+      pass: GMAIL_PASS.value(),   // Gmail App Password (16 chars)
     },
   });
 }
@@ -105,7 +109,7 @@ api.post("/auth/send-otp", async (req: Request, res: Response) => {
     // Send email
     const transporter = getTransporter();
     await transporter.sendMail({
-      from: `"NCAA Admin" <${process.env.GMAIL_USER}>`,
+      from: `"NCAA Admin" <${GMAIL_USER.value()}>`,
       to: normalised,
       subject: "Your NCAA Admin Login Code",
       html: `
@@ -230,4 +234,5 @@ api.post("/donations", async (req: Request, res: Response) => {
   }
 });
 
-export const apiV1 = onRequest({ cors: true }, api);
+export const apiV1 = onRequest({ cors: true, secrets: [GMAIL_USER, GMAIL_PASS] }, api);
+

@@ -16,6 +16,15 @@ export function CTASection() {
             />
           </div>
 
+          {/* Soft lighting overlay */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle at 20% 15%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 42%), radial-gradient(circle at 85% 80%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 46%)",
+            }}
+          />
+
           <div className="relative mx-auto max-w-3xl text-center px-2">
             <h2 className="mb-4 font-heading text-2xl sm:text-3xl font-bold text-primary-foreground md:text-4xl lg:text-5xl">
               Join Our Growing Community
@@ -25,7 +34,7 @@ export function CTASection() {
               strengthen our bonds, support our sisters, and build a brighter
               future for Twic East girls everywhere.
             </p>
-            <div className="flex flex-row items-center justify-center gap-2 sm:gap-4 flex-wrap px-2">
+            <div className="flex flex-row items-center justify-center gap-3 sm:gap-5 flex-wrap px-2">
               <Button
                 variant="hero"
                 size="lg"

@@ -66,7 +66,7 @@ export function Header() {
           {/* Same org name on all screen sizes */}
           <div>
             <p className="font-heading text-sm font-bold leading-tight text-foreground sm:text-lg">
-              Nyan Cit Arialbeek
+              Nyan Cit Arialbeek - Juba
             </p>
             <p className="text-xs text-muted-foreground">
               Nyan Cit Arialbeek Association (NCAA)

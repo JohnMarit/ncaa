@@ -16,9 +16,9 @@ const buttonVariants = cva(
         ghost: "hover:bg-muted hover:text-foreground",
         link: "text-brand-secondary-600 underline-offset-4 hover:underline",
         hero:
-          "bg-gradient-hero text-primary-foreground shadow-elevated hover:brightness-105 hover:shadow-[0_22px_45px_-24px_rgba(122,86,156,0.65)] font-bold",
+          "bg-gradient-hero !text-primary-foreground shadow-elevated ring-1 ring-white/20 hover:brightness-[1.08] hover:shadow-[0_28px_70px_-30px_rgba(122,86,156,0.85)] hover:-translate-y-0.5 hover:!text-primary-foreground focus-visible:ring-2 focus-visible:ring-white/70 font-bold",
         heroOutline:
-          "border-2 border-brand-primary-400 bg-transparent text-brand-primary-700 hover:bg-brand-primary-500 hover:text-primary-foreground hover:border-brand-primary-500 shadow-soft/50",
+          "border-2 border-white/55 bg-white/10 !text-white backdrop-blur-md shadow-soft/50 hover:bg-white/18 hover:border-white/75 hover:shadow-[0_18px_55px_-30px_rgba(255,255,255,0.55)] hover:-translate-y-0.5 hover:!text-white focus-visible:ring-2 focus-visible:ring-white/70",
         accent:
           "bg-brand-feminine-400 text-brand-feminine-foreground hover:bg-brand-feminine-500 shadow-soft hover:shadow-elevated",
         muted: "bg-muted text-muted-foreground hover:bg-muted/80",

@@ -38,10 +38,27 @@ export function HeroSection() {
           />
         ))}
         {/* Brand-colored overlay for harmony with color scheme */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
-            background: 'linear-gradient(135deg, hsl(278 42% 34% / 0.5) 0%, hsl(276 46% 30% / 0.4) 100%)',
+            background:
+              "linear-gradient(135deg, hsl(278 42% 28% / 0.55) 0%, hsl(276 46% 22% / 0.45) 45%, hsl(278 42% 18% / 0.55) 100%)",
+          }}
+        />
+
+        {/* Ethereal light + vignette layers */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 18% 18%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 38%), radial-gradient(circle at 80% 10%, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 40%)",
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(80% 70% at 50% 32%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.42) 68%, rgba(0,0,0,0.72) 100%)",
           }}
         />
       </div>
@@ -76,7 +93,7 @@ export function HeroSection() {
           </p>
 
           {/* CTA Buttons */}
-          <div ref={buttonContainerRef} className="flex flex-row items-center justify-center gap-2 sm:gap-4 opacity-0 animate-fade-up stagger-3 flex-wrap px-2">
+          <div ref={buttonContainerRef} className="flex flex-row items-center justify-center gap-3 sm:gap-5 opacity-0 animate-fade-up stagger-3 flex-wrap px-2">
             <Button variant="hero" size="lg" className="text-sm sm:text-base h-11 sm:h-14 px-3 sm:px-10 shrink basis-auto min-w-fit" asChild>
               <Link to="/register">
                 Become a Member

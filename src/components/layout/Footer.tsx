@@ -142,6 +142,18 @@ export function Footer() {
           <p className="text-center text-sm text-muted-foreground">
             © {new Date().getFullYear()} Nyan Cit Arialbeek Association (NCAA). All rights
             reserved.
+            <span className="block">
+              Built by{" "}
+              <a
+                href="https://www.belednai.ss"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 transition-colors hover:text-foreground"
+              >
+                Belednai Technology
+              </a>
+              .
+            </span>
           </p>
           <div className="flex gap-6 text-sm">
             <Link

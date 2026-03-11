@@ -1,47 +1,14 @@
 import { useState } from "react";
 import { Users, Sparkles } from "lucide-react";
 import { useAdminData } from "@/contexts/AdminDataContext";
-import type { MentorProfile } from "@/contexts/AdminDataContext";
-
-const FALLBACK_MENTORS: MentorProfile[] = [
-  {
-    id: "demo-mentor-1",
-    name: "Prof. Achol Deng",
-    position: "Lecturer",
-    organization: "University of Juba",
-    story:
-      "Achol was the first girl from her village to complete university. Today she lectures young women and often reminds them that their voices matter in classrooms and in policy spaces.",
-  },
-  {
-    id: "demo-mentor-2",
-    name: "Mama Nyaluak",
-    position: "Community Elder",
-    organization: "Arialbeek",
-    story:
-      "For many years she has walked from home to home encouraging parents to keep their girls in school. Girls say they look up to her courage and strong voice.",
-  },
-  {
-    id: "demo-mentor-3",
-    name: "Deng John",
-    position: "Engineer",
-    organization: "NCAA Member",
-    story:
-      "As a practising engineer, Deng shares his journey with girls who love science and maths, showing them that they too can build roads, bridges and systems.",
-  },
-  {
-    id: "demo-mentor-4",
-    name: "Sr. Mary",
-    position: "Head Teacher",
-    organization: "Bor",
-    story:
-      "She leads a girls’ boarding school and offers guidance, prayer and discipline. Many former students credit her for shaping their confidence.",
-  },
-];
 
 export function MentorsSection() {
   const { mentors } = useAdminData();
-  const items = mentors.length > 0 ? mentors : FALLBACK_MENTORS;
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  if (mentors.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-16 md:py-20 bg-muted/40">
@@ -62,7 +29,7 @@ export function MentorsSection() {
         </div>
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {items.map((mentor) => {
+          {mentors.map((mentor) => {
             const story = mentor.story ?? "";
             const firstParagraph = story.split(/\n{2,}/)[0] ?? "";
             const preview = firstParagraph.slice(0, 160);

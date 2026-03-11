@@ -4,57 +4,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import type { Testimonial } from "@/contexts/AdminDataContext";
-import NyandengImg from "@/images/Nyandeng.jpeg";
-import AmerImg from "@/images/Amer_T.jpg";
-import AluelImg from "@/images/Aluel.jpeg";
-import AbukImg from "@/images/Abuk.jpeg";
-import YarGImg from "@/images/Yar_G.JPG";
-import YarKImg from "@/images/Yar_K.JPG";
-
-const FALLBACK: Testimonial[] = [
-    {
-        id: "demo-1",
-        name: "Nyandeng A.",
-        role: "Secondary school student, Bor",
-        quote: "Because of NCAA's support, I stayed in school when my family could no longer afford the fees. I now dream of becoming a nurse.",
-        photoUrl: NyandengImg,
-    },
-    {
-        id: "demo-2",
-        name: "Abuk M.",
-        role: "Parent, Kongor Payam",
-        quote: "The scholarship lifted a huge burden from our household. My daughter can focus on her books instead of worrying about school fees.",
-        photoUrl: AbukImg,
-    },
-    {
-        id: "demo-3",
-        name: "Amer T.",
-        role: "University student, Juba",
-        quote: "NCAA believed in me from secondary school to campus. Their mentorship and community have shaped the woman I am becoming.",
-        photoUrl: AmerImg,
-    },
-    {
-        id: "demo-4",
-        name: "Aluel K.",
-        role: "Vocational trainee, TEYA Institute",
-        quote: "The vocational scholarship gave me practical skills in tailoring. I now support myself and help my younger siblings with school items.",
-        photoUrl: AluelImg,
-    },
-    {
-        id: "demo-5",
-        name: "Community Elder",
-        role: "Arialbeek Community Leader",
-        quote: "We are seeing a new generation of educated girls who will lead our community with wisdom and compassion. NCAA is planting good seeds.",
-        photoUrl: YarGImg,
-    },
-    {
-        id: "demo-6",
-        name: "NCAA Member",
-        role: "Diaspora member, Nairobi",
-        quote: "Giving through NCAA feels personal. You see exactly how your contribution is changing real lives back home.",
-        photoUrl: YarKImg,
-    },
-];
 
 function TestimonialCard({ t }: { t: Testimonial }) {
     return (
@@ -168,11 +117,13 @@ function MarqueeRow({
 export const TestimonialsSection = () => {
     const { testimonials } = useAdminData();
 
-    const items = testimonials.length > 0 ? testimonials : FALLBACK;
+    if (testimonials.length === 0) {
+        return null;
+    }
 
-    const mid = Math.ceil(items.length / 2);
-    const row1 = items.slice(0, mid);
-    const row2 = items.slice(mid);
+    const mid = Math.ceil(testimonials.length / 2);
+    const row1 = testimonials.slice(0, mid);
+    const row2 = testimonials.slice(mid);
     const effectiveRow2 = row2.length > 0 ? row2 : row1;
 
     return (

@@ -1,0 +1,19 @@
+[
+  {
+    "origin": [
+      "https://www.ncaa.org.ss",
+      "https://ncaa.org.ss",
+      "http://localhost:8081",
+      "http://localhost:5173"
+    ],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Authorization",
+      "Content-Length",
+      "X-Requested-With",
+      "x-goog-resumable"
+    ]
+  }
+]

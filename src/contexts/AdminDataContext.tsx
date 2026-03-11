@@ -975,8 +975,9 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Firestore: contact messages – real-time sync
+  // Firestore: contact messages – real-time sync (admin-only read)
   useEffect(() => {
+    if (!isAdminUser) return;
     const messagesCol = collection(db, FIRESTORE_COLLECTIONS.contactMessages);
 
     const unsub = onSnapshot(
@@ -997,7 +998,7 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     return () => {
       unsub();
     };
-  }, []);
+  }, [isAdminUser]);
 
   // Firestore: leadership (executive + payam) – real-time sync + one-time seed
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { GraduationCap, Plus, Edit, Trash2, ExternalLink } from "lucide-react";
+import { GraduationCap, Plus, Edit, Trash2, ExternalLink, CheckCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminData } from "@/contexts/AdminDataContext";
-import type { AdminScholarship, ScholarshipFormField, ScholarshipFormFieldType } from "@/contexts/AdminDataContext";
+import type {
+    AdminScholarship,
+    ScholarshipFormField,
+    ScholarshipFormFieldType,
+    ScholarProfile,
+} from "@/contexts/AdminDataContext";
 import {
     Dialog,
     DialogContent,
@@ -37,7 +42,16 @@ import {
 
 const Scholarships = () => {
     const { toast } = useToast();
-    const { scholarships, addScholarship, updateScholarship, deleteScholarship } = useAdminData();
+    const {
+        scholarships,
+        scholars,
+        addScholarship,
+        updateScholarship,
+        deleteScholarship,
+        addScholarProfile,
+        updateScholarProfile,
+        deleteScholarProfile,
+    } = useAdminData();
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [form, setForm] = useState({
@@ -48,6 +62,17 @@ const Scholarships = () => {
     const [formFieldsEnabled, setFormFieldsEnabled] = useState(false);
     const [formFields, setFormFields] = useState<ScholarshipFormField[]>([]);
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+    const [isScholarDialogOpen, setIsScholarDialogOpen] = useState(false);
+    const [editingScholarId, setEditingScholarId] = useState<string | null>(null);
+    const [scholarForm, setScholarForm] = useState({
+        name: "",
+        tagline: "",
+        photoUrl: "",
+        story: "",
+        featured: true as boolean,
+    });
+    const [scholarErrors, setScholarErrors] = useState<Record<string, string>>({});
 
     const addField = () => {
         const newField: ScholarshipFormField = {
@@ -97,11 +122,39 @@ const Scholarships = () => {
         return Object.keys(err).length === 0;
     };
 
+    const validateScholar = () => {
+        const err: Record<string, string> = {};
+        if (!scholarForm.name.trim()) err.name = "Name is required.";
+        if (!scholarForm.story.trim()) err.story = "Story is required.";
+        const url = scholarForm.photoUrl.trim();
+        if (url.length > 0) {
+            try {
+                new URL(url);
+            } catch {
+                err.photoUrl = "Please enter a valid image URL.";
+            }
+        }
+        setScholarErrors(err);
+        return Object.keys(err).length === 0;
+    };
+
     const resetForm = () => {
         setForm({ title: "", description: "", applicationLink: "" });
         setFormFieldsEnabled(false);
         setFormFields([]);
         setFormErrors({});
+    };
+
+    const resetScholarForm = () => {
+        setScholarForm({
+            name: "",
+            tagline: "",
+            photoUrl: "",
+            story: "",
+            featured: true,
+        });
+        setScholarErrors({});
+        setEditingScholarId(null);
     };
 
     const handleCreate = (e: React.FormEvent) => {
@@ -173,6 +226,84 @@ const Scholarships = () => {
             title: "Scholarship Removed",
             description: "The scholarship post has been deleted.",
         });
+    };
+
+    const handleScholarSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateScholar()) {
+            toast({
+                title: "Validation Error",
+                description: "Please fix the highlighted scholar fields.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        try {
+            if (editingScholarId) {
+                await updateScholarProfile(editingScholarId, {
+                    name: scholarForm.name.trim(),
+                    tagline: scholarForm.tagline.trim() || undefined,
+                    photoUrl: scholarForm.photoUrl.trim() || undefined,
+                    story: scholarForm.story.trim(),
+                    featured: scholarForm.featured,
+                });
+                toast({
+                    title: "Scholar Updated",
+                    description: "The scholar profile has been updated.",
+                });
+            } else {
+                await addScholarProfile({
+                    name: scholarForm.name.trim(),
+                    tagline: scholarForm.tagline.trim() || undefined,
+                    photoUrl: scholarForm.photoUrl.trim() || undefined,
+                    story: scholarForm.story.trim(),
+                    featured: scholarForm.featured,
+                });
+                toast({
+                    title: "Scholar Added",
+                    description: "The scholar profile is now visible on the Scholarship page.",
+                });
+            }
+            resetScholarForm();
+            setIsScholarDialogOpen(false);
+        } catch {
+            toast({
+                title: "Error",
+                description: "Unable to save scholar profile. Please try again.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    const handleScholarEditClick = (s: ScholarProfile) => {
+        setScholarForm({
+            name: s.name,
+            tagline: s.tagline ?? "",
+            photoUrl: s.photoUrl ?? "",
+            story: s.story,
+            featured: s.featured ?? true,
+        });
+        setScholarErrors({});
+        setEditingScholarId(s.id);
+        setIsScholarDialogOpen(true);
+    };
+
+    const handleScholarDelete = async (id: string, name: string) => {
+        if (!confirm(`Remove scholar profile for "${name}"? This will hide her story from the site.`)) return;
+        try {
+            await deleteScholarProfile(id);
+            toast({
+                title: "Scholar Removed",
+                description: "The scholar profile has been deleted.",
+            });
+        } catch {
+            toast({
+                title: "Error",
+                description: "Unable to delete scholar profile. Please try again.",
+                variant: "destructive",
+            });
+        }
     };
 
     return (
@@ -406,6 +537,230 @@ const Scholarships = () => {
                                     ))}
                                 </TableBody>
                             </Table>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center justify-between gap-4">
+                            <div>
+                                <CardTitle>Featured Scholars</CardTitle>
+                                <CardDescription>
+                                    Manage profiles of girls currently sponsored by NCAA. These appear on the public Scholarship page with a "Read my story" button.
+                                </CardDescription>
+                            </div>
+                            <Dialog
+                                open={isScholarDialogOpen}
+                                onOpenChange={(open) => {
+                                    setIsScholarDialogOpen(open);
+                                    if (!open) resetScholarForm();
+                                }}
+                            >
+                                <DialogTrigger asChild>
+                                    <Button>
+                                        <Plus className="mr-2 h-4 w-4" />
+                                        {editingScholarId ? "Edit Scholar" : "Add Scholar"}
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="max-w-lg">
+                                    <DialogHeader>
+                                        <DialogTitle>{editingScholarId ? "Edit Scholar Profile" : "Add Scholar Profile"}</DialogTitle>
+                                        <DialogDescription>
+                                            Share the stories of sponsored girls with our community and donors.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <form onSubmit={handleScholarSubmit}>
+                                        <div className="grid gap-4 py-4">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="scholar-name">Name *</Label>
+                                                <Input
+                                                    id="scholar-name"
+                                                    placeholder="e.g. Nyandeng Alek"
+                                                    value={scholarForm.name}
+                                                    onChange={(e) => setScholarForm({ ...scholarForm, name: e.target.value })}
+                                                    className={scholarErrors.name ? "border-destructive" : ""}
+                                                />
+                                                {scholarErrors.name && <p className="text-sm text-destructive">{scholarErrors.name}</p>}
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="scholar-tagline">Tagline</Label>
+                                                <Input
+                                                    id="scholar-tagline"
+                                                    placeholder="e.g. Secondary student, aspiring nurse"
+                                                    value={scholarForm.tagline}
+                                                    onChange={(e) => setScholarForm({ ...scholarForm, tagline: e.target.value })}
+                                                />
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="scholar-photo">Photo URL</Label>
+                                                <Input
+                                                    id="scholar-photo"
+                                                    placeholder="https://..."
+                                                    value={scholarForm.photoUrl}
+                                                    onChange={(e) => setScholarForm({ ...scholarForm, photoUrl: e.target.value })}
+                                                    className={scholarErrors.photoUrl ? "border-destructive" : ""}
+                                                />
+                                                {scholarErrors.photoUrl && (
+                                                    <p className="text-sm text-destructive">{scholarErrors.photoUrl}</p>
+                                                )}
+                                                <p className="text-xs text-muted-foreground">
+                                                    Use a square image for best results. You can paste a link from Firebase Storage or another secure host.
+                                                </p>
+                                            </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="scholar-story">Story *</Label>
+                                                <Textarea
+                                                    id="scholar-story"
+                                                    rows={6}
+                                                    placeholder="Write her story, background, and how the scholarship is impacting her life."
+                                                    value={scholarForm.story}
+                                                    onChange={(e) => setScholarForm({ ...scholarForm, story: e.target.value })}
+                                                    className={scholarErrors.story ? "border-destructive" : ""}
+                                                />
+                                                {scholarErrors.story && <p className="text-sm text-destructive">{scholarErrors.story}</p>}
+                                            </div>
+                                            <div className="flex items-center justify-between rounded-md border border-border p-3">
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="scholar-featured">Feature on Scholarship page</Label>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Featured scholars appear first in the public list.
+                                                    </p>
+                                                </div>
+                                                <Switch
+                                                    id="scholar-featured"
+                                                    checked={scholarForm.featured}
+                                                    onCheckedChange={(checked) =>
+                                                        setScholarForm({ ...scholarForm, featured: checked })
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                onClick={() => {
+                                                    setIsScholarDialogOpen(false);
+                                                    resetScholarForm();
+                                                }}
+                                            >
+                                                Cancel
+                                            </Button>
+                                            <Button type="submit">
+                                                {editingScholarId ? "Save Changes" : "Create Profile"}
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        {scholars.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-10 text-center">
+                                <GraduationCap className="mb-4 h-10 w-10 text-muted-foreground" />
+                                <p className="font-medium">No scholar profiles yet.</p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Highlight the stories of sponsored girls to inspire members and donors.
+                                </p>
+                                <Button
+                                    className="mt-4"
+                                    variant="outline"
+                                    onClick={() => {
+                                        resetScholarForm();
+                                        setIsScholarDialogOpen(true);
+                                    }}
+                                >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Scholar Profile
+                                </Button>
+                            </div>
+                        ) : (
+                            <div className="overflow-x-auto -mx-1">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Scholar</TableHead>
+                                            <TableHead className="max-w-[260px]">Tagline</TableHead>
+                                            <TableHead>Featured</TableHead>
+                                            <TableHead className="w-[100px] text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {scholars.map((s) => (
+                                            <TableRow key={s.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        {s.photoUrl ? (
+                                                            <img
+                                                                src={s.photoUrl}
+                                                                alt={s.name}
+                                                                className="h-10 w-10 rounded-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                                                                {s.name
+                                                                    .split(" ")
+                                                                    .map((part) => part[0])
+                                                                    .join("")
+                                                                    .slice(0, 2)
+                                                                    .toUpperCase()}
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <p className="font-medium">{s.name}</p>
+                                                            {s.createdAt && (
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    Added {new Date(s.createdAt).toLocaleDateString()}
+                                                                </p>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="max-w-[260px] truncate text-muted-foreground">
+                                                    {s.tagline}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {s.featured ? (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                                                            <CheckCircle className="h-3 w-3" />
+                                                            Featured
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                            <Clock className="h-3 w-3" />
+                                                            Standard
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="h-8 w-8 p-0"
+                                                            onClick={() => handleScholarEditClick(s)}
+                                                            aria-label={`Edit ${s.name}`}
+                                                        >
+                                                            <Edit className="h-4 w-4 text-[hsl(var(--brand-primary-600))]" />
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="h-8 w-8 p-0 text-[hsl(var(--brand-feminine-600))]"
+                                                            onClick={() => handleScholarDelete(s.id, s.name)}
+                                                            aria-label={`Delete ${s.name}`}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
                             </div>
                         )}
                     </CardContent>

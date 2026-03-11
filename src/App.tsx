@@ -15,6 +15,7 @@ import Membership from "./pages/Membership";
 import MembershipPayment from "./pages/MembershipPayment";
 import Scholarship from "./pages/Scholarship";
 import ScholarshipApplication from "./pages/ScholarshipApplication";
+import ScholarStory from "./pages/ScholarStory";
 import Elections from "./pages/Elections";
 import UpcomingEvents from "./pages/UpcomingEvents";
 import PastEvents from "./pages/PastEvents";
@@ -39,6 +40,10 @@ import AdminDocuments from "./pages/admin/Documents";
 import AdminPayments from "./pages/admin/Payments";
 import AdminSettings from "./pages/admin/Settings";
 import AdminScholarships from "./pages/admin/Scholarships";
+import AdminTestimonials from "./pages/admin/Testimonials";
+import AdminMentors from "./pages/admin/Mentors";
+import AdminPartners from "./pages/admin/Partners";
+import AdminMessages from "./pages/admin/Messages";
 import AdminNotifications from "./pages/admin/Notifications";
 import { AdminRoute } from "./components/admin/AdminRoute";
 import NotFound from "./pages/NotFound";
@@ -67,6 +72,7 @@ const App = () => (
               <Route path="/scholarship" element={<Scholarship />} />
               <Route path="/scholarship/apply" element={<ScholarshipApplication />} />
               <Route path="/scholarship/apply/:scholarshipId" element={<ScholarshipApplication />} />
+              <Route path="/scholarship/scholar/:scholarId" element={<ScholarStory />} />
               <Route path="/elections" element={<Elections />} />
               <Route path="/events" element={<Events />} />
               <Route path="/events/upcoming" element={<UpcomingEvents />} />
@@ -87,8 +93,12 @@ const App = () => (
               {/* Admin Routes - Only accessible through /admin */}
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
               <Route path="/admin/members" element={<AdminRoute><AdminMembers /></AdminRoute>} />
+              <Route path="/admin/messages" element={<AdminRoute><AdminMessages /></AdminRoute>} />
               <Route path="/admin/events" element={<AdminRoute><AdminEvents /></AdminRoute>} />
               <Route path="/admin/scholarships" element={<AdminRoute><AdminScholarships /></AdminRoute>} />
+              <Route path="/admin/testimonials" element={<AdminRoute><AdminTestimonials /></AdminRoute>} />
+              <Route path="/admin/mentors" element={<AdminRoute><AdminMentors /></AdminRoute>} />
+              <Route path="/admin/partners" element={<AdminRoute><AdminPartners /></AdminRoute>} />
               <Route path="/admin/elections" element={<AdminRoute><AdminElections /></AdminRoute>} />
               <Route path="/admin/leadership" element={<AdminRoute><AdminLeadership /></AdminRoute>} />
               <Route path="/admin/documents" element={<AdminRoute><AdminDocuments /></AdminRoute>} />

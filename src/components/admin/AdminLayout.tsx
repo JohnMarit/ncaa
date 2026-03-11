@@ -18,7 +18,10 @@ import {
     XCircle,
     MessageSquare,
     Clock,
-    GraduationCap
+    GraduationCap,
+    Quote,
+    Sparkles,
+    HeartHandshake,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,9 +50,13 @@ interface Notification {
 
 const navigation = [
     { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
+    { name: "Messages", href: "/admin/messages", icon: MessageSquare },
     { name: "Members", href: "/admin/members", icon: Users },
     { name: "Events", href: "/admin/events", icon: Calendar },
     { name: "Scholarships", href: "/admin/scholarships", icon: GraduationCap },
+    { name: "Testimonials", href: "/admin/testimonials", icon: Quote },
+    { name: "Mentors", href: "/admin/mentors", icon: Sparkles },
+  { name: "Partners", href: "/admin/partners", icon: HeartHandshake },
     { name: "Elections", href: "/admin/elections", icon: Vote },
     { name: "Leadership", href: "/admin/leadership", icon: Crown },
     { name: "Documents", href: "/admin/documents", icon: FileText },

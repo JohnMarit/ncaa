@@ -1,17 +1,45 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
-import { Send } from "lucide-react";
+import { Send, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { contactInformation } from "@/data/contact";
+import { useAdminData } from "@/contexts/AdminDataContext";
+import { useState } from "react";
 
 const Contact = () => {
-    const handleSubmit = (e: React.FormEvent) => {
+    const { submitContactMessage } = useAdminData();
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // TODO: Implement contact form submission
-        console.log("Contact form submitted");
+        if (isSubmitting) return;
+
+        const form = e.target as HTMLFormElement;
+        const formData = new FormData(form);
+
+        const data = {
+            name: formData.get("name") as string,
+            email: formData.get("email") as string,
+            subject: formData.get("subject") as string,
+            message: formData.get("message") as string,
+        };
+
+        try {
+            setIsSubmitting(true);
+            await submitContactMessage(data);
+            setIsSuccess(true);
+            form.reset();
+            setTimeout(() => setIsSuccess(false), 5000);
+        } catch (error) {
+            console.error("Failed to submit contact message:", error);
+            alert("Failed to send message. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -39,31 +67,39 @@ const Contact = () => {
                             {/* Contact Form */}
                             <div>
                                 <h2 className="mb-6 font-heading text-2xl font-bold">Send us a Message</h2>
+                                {isSuccess && (
+                                    <div className="mb-6 flex items-center gap-2 rounded-lg bg-green-50 p-4 text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                                        <CheckCircle2 className="h-5 w-5" />
+                                        <p className="font-medium">Message sent successfully! We'll get back to you soon.</p>
+                                    </div>
+                                )}
                                 <form onSubmit={handleSubmit} className="space-y-6">
                                     <div className="space-y-2">
                                         <Label htmlFor="name">Full Name</Label>
-                                        <Input id="name" placeholder="Your name" required />
+                                        <Input id="name" name="name" placeholder="Your name" required disabled={isSubmitting} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="email">Email</Label>
-                                        <Input id="email" type="email" placeholder="your.email@example.com" required />
+                                        <Input id="email" name="email" type="email" placeholder="your.email@example.com" required disabled={isSubmitting} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="subject">Subject</Label>
-                                        <Input id="subject" placeholder="What is this about?" required />
+                                        <Input id="subject" name="subject" placeholder="What is this about?" required disabled={isSubmitting} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="message">Message</Label>
                                         <Textarea
                                             id="message"
+                                            name="message"
                                             placeholder="Your message..."
                                             rows={6}
                                             required
+                                            disabled={isSubmitting}
                                         />
                                     </div>
-                                    <Button type="submit" className="w-full md:w-auto">
+                                    <Button type="submit" className="w-full md:w-auto" disabled={isSubmitting}>
                                         <Send className="mr-2 h-4 w-4" />
-                                        Send Message
+                                        {isSubmitting ? "Sending..." : "Send Message"}
                                     </Button>
                                 </form>
                             </div>
@@ -104,16 +140,16 @@ const Contact = () => {
                                     <h3 className="mb-4 font-heading text-xl font-semibold">Leadership Team</h3>
                                     <div className="space-y-4">
                                         <div className="rounded-lg border border-border bg-card p-4">
-                                            <h4 className="font-semibold">President</h4>
+                                            <h4 className="font-semibold">Office</h4>
                                             <p className="text-sm text-muted-foreground">info@ncaa.org.ss</p>
+                                        </div>
+                                        <div className="rounded-lg border border-border bg-card p-4">
+                                            <h4 className="font-semibold">Chairlady</h4>
+                                            <p className="text-sm text-muted-foreground">chair@ncaa.org.ss</p>
                                         </div>
                                         <div className="rounded-lg border border-border bg-card p-4">
                                             <h4 className="font-semibold">Secretary General</h4>
-                                            <p className="text-sm text-muted-foreground">info@ncaa.org.ss</p>
-                                        </div>
-                                        <div className="rounded-lg border border-border bg-card p-4">
-                                            <h4 className="font-semibold">IEC Chairlady</h4>
-                                            <p className="text-sm text-muted-foreground">info@ncaa.org.ss</p>
+                                            <p className="text-sm text-muted-foreground">sec@ncaa.org.ss</p>
                                         </div>
                                     </div>
                                 </div>

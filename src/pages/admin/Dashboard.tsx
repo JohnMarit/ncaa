@@ -44,7 +44,7 @@ const EVENTS_CHART_CONFIG: ChartConfig = {
 
 const Dashboard = () => {
     const navigate = useNavigate();
-    const { members, payments, notifications, events } = useAdminData();
+    const { members, payments, notifications, events, contactMessages } = useAdminData();
 
     const totalMembers = members.length;
     const pendingMembers = members.filter(m => m.status === "pending").length;
@@ -65,6 +65,7 @@ const Dashboard = () => {
         events.filter(e => e.published !== false && new Date(e.date) >= today).length,
         [events, today]
     );
+    const unreadMessages = contactMessages.filter(m => !m.read).length;
 
     const stats = [
         {
@@ -98,6 +99,14 @@ const Dashboard = () => {
             trend: "neutral",
             icon: DollarSign,
             color: "text-[hsl(var(--brand-secondary-700))]"
+        },
+        {
+            title: "Unread Messages",
+            value: unreadMessages.toString(),
+            change: unreadMessages ? "Requires attention" : "All read",
+            trend: "neutral",
+            icon: AlertCircle,
+            color: "text-[hsl(var(--brand-feminine-600))]"
         }
     ];
 

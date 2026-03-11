@@ -1,0 +1,116 @@
+import { Users, Sparkles } from "lucide-react";
+import { useAdminData } from "@/contexts/AdminDataContext";
+import type { MentorProfile } from "@/contexts/AdminDataContext";
+
+const FALLBACK_MENTORS: MentorProfile[] = [
+  {
+    id: "demo-mentor-1",
+    name: "Prof. Achol Deng",
+    position: "Lecturer",
+    organization: "University of Juba",
+    story:
+      "Achol was the first girl from her village to complete university. Today she lectures young women and often reminds them that their voices matter in classrooms and in policy spaces.",
+  },
+  {
+    id: "demo-mentor-2",
+    name: "Mama Nyaluak",
+    position: "Community Elder",
+    organization: "Arialbeek",
+    story:
+      "For many years she has walked from home to home encouraging parents to keep their girls in school. Girls say they look up to her courage and strong voice.",
+  },
+  {
+    id: "demo-mentor-3",
+    name: "Deng John",
+    position: "Engineer",
+    organization: "NCAA Member",
+    story:
+      "As a practising engineer, Deng shares his journey with girls who love science and maths, showing them that they too can build roads, bridges and systems.",
+  },
+  {
+    id: "demo-mentor-4",
+    name: "Sr. Mary",
+    position: "Head Teacher",
+    organization: "Bor",
+    story:
+      "She leads a girls’ boarding school and offers guidance, prayer and discipline. Many former students credit her for shaping their confidence.",
+  },
+];
+
+export function MentorsSection() {
+  const { mentors } = useAdminData();
+  const items = mentors.length > 0 ? mentors : FALLBACK_MENTORS;
+
+  return (
+    <section className="py-16 md:py-20 bg-muted/40">
+      <div className="container">
+        <div className="mx-auto mb-10 max-w-3xl text-center">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+            <Sparkles className="h-3 w-3" />
+            Girls Mentors &amp; Role Models
+          </div>
+          <h2 className="mb-3 font-heading text-2xl font-bold md:text-3xl">
+            Girls Mentors and People They Look Up To
+          </h2>
+          <p className="text-sm md:text-base text-muted-foreground">
+            Around every NCAA girl there is a circle of women and men who cheer
+            her on, share wisdom and open doors. Here are some of the people
+            our girls say they look up to.
+          </p>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {items.map((mentor) => {
+            const firstParagraph = (mentor.story ?? "").split(/\n{2,}/)[0] ?? "";
+            const preview = firstParagraph.slice(0, 160);
+            const hasMore = (mentor.story ?? "").length > preview.length;
+
+            return (
+            <div
+              key={mentor.name}
+              className="flex h-full flex-col rounded-xl border border-border/70 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+            >
+              <div className="mb-3 flex items-center gap-3">
+                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary overflow-hidden">
+                  {mentor.photoUrl ? (
+                    <img
+                      src={mentor.photoUrl}
+                      alt={mentor.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-xs font-semibold">
+                      {mentor.name
+                        .split(" ")
+                        .map((p) => p[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-semibold text-foreground truncate">
+                    {mentor.name}
+                  </h3>
+                  <p className="text-[11px] font-medium text-primary/80 truncate">
+                    {mentor.position}
+                    {mentor.organization ? ` · ${mentor.organization}` : ""}
+                  </p>
+                </div>
+              </div>
+              {preview && (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {preview}
+                  {hasMore && "…"}
+                </p>
+              )}
+            </div>
+          );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+

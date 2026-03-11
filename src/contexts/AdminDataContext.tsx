@@ -11,6 +11,7 @@ import {
   getDoc,
   getDocs,
   onSnapshot,
+  orderBy,
   query,
   setDoc,
   updateDoc,
@@ -155,6 +156,72 @@ export interface AdminScholarship {
   createdAt?: string;
 }
 
+export interface ScholarProfile {
+  id: string;
+  /** Full name of the sponsored girl. */
+  name: string;
+  /** Optional short line shown on cards, e.g. school or aspiration. */
+  tagline?: string;
+  /** Public URL to her photo (can be Firebase Storage or external). */
+  photoUrl?: string;
+  /** Long-form biography or story text shown on the detail page. */
+  story: string;
+  /** If true, prioritize showing this profile first. */
+  featured?: boolean;
+  /** ISO date string; set on create for ordering. */
+  createdAt?: string;
+}
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  role: string;
+  quote: string;
+  photoUrl?: string;
+  createdAt?: string;
+}
+
+export interface MentorProfile {
+  id: string;
+  /** Full name of the mentor or role model. */
+  name: string;
+  /** Current position or title the mentor is holding. */
+  position: string;
+  /** Optional organisation or place where they serve (school, community, etc.). */
+  organization?: string;
+  /** Public URL for the mentor's photo. */
+  photoUrl?: string;
+  /**
+   * Long-form journey or experience text.
+   * Admins can write a brief or full article about their path and lessons for girls.
+   */
+  story: string;
+  /** ISO date string; set on create for ordering. */
+  createdAt?: string;
+}
+
+export interface Partner {
+  id: string;
+  /** Name of the partner or organisation. */
+  name: string;
+  /** Short description of how they support NCAA. */
+  description: string;
+  /** Optional logo image URL shown on the homepage. */
+  logoUrl?: string;
+  /** ISO date string; set on create for ordering. */
+  createdAt?: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  submittedAt: string;
+  read: boolean;
+}
+
 export interface ScholarshipApplicationSubmission {
   id: string;
   scholarshipId: string;
@@ -174,6 +241,12 @@ interface AdminDataContextType {
   payamRepresentatives: AdminPayamRepresentative[];
   events: AdminEvent[];
   scholarships: AdminScholarship[];
+  scholars: ScholarProfile[];
+  testimonials: Testimonial[];
+  mentors: MentorProfile[];
+  partners: Partner[];
+  contactMessages: ContactMessage[];
+  mentors: MentorProfile[];
   submitScholarshipApplication: (input: Omit<ScholarshipApplicationSubmission, "id" | "submittedAt">) => Promise<void>;
   addMember: (member: Omit<Member, "id" | "status" | "appliedDate" | "paymentStatus">) => void;
   updateMember: (id: string, updates: Partial<Omit<Member, "id" | "appliedDate">>) => void;
@@ -205,6 +278,21 @@ interface AdminDataContextType {
   addScholarship: (scholarship: Omit<AdminScholarship, "id">) => void;
   updateScholarship: (id: string, updates: Partial<AdminScholarship>) => void;
   deleteScholarship: (id: string) => void;
+  addScholarProfile: (scholar: Omit<ScholarProfile, "id" | "createdAt">) => Promise<void>;
+  updateScholarProfile: (id: string, updates: Partial<ScholarProfile>) => Promise<void>;
+  deleteScholarProfile: (id: string) => Promise<void>;
+  addTestimonial: (testimonial: Omit<Testimonial, "id" | "createdAt">) => Promise<void>;
+  updateTestimonial: (id: string, updates: Partial<Testimonial>) => Promise<void>;
+  deleteTestimonial: (id: string) => Promise<void>;
+  addMentor: (mentor: Omit<MentorProfile, "id" | "createdAt">) => Promise<void>;
+  updateMentor: (id: string, updates: Partial<MentorProfile>) => Promise<void>;
+  deleteMentor: (id: string) => Promise<void>;
+  addPartner: (partner: Omit<Partner, "id" | "createdAt">) => Promise<void>;
+  updatePartner: (id: string, updates: Partial<Partner>) => Promise<void>;
+  deletePartner: (id: string) => Promise<void>;
+  submitContactMessage: (data: Omit<ContactMessage, "id" | "submittedAt" | "read">) => Promise<string>;
+  markContactMessageRead: (id: string, read: boolean) => Promise<void>;
+  deleteContactMessage: (id: string) => Promise<void>;
 }
 
 const AdminDataContext = createContext<AdminDataContextType | undefined>(undefined);
@@ -234,6 +322,11 @@ const FIRESTORE_COLLECTIONS = {
   notifications: "notifications",
   elections: "elections",
   nominations: "nominations",
+  scholars: "scholars",
+  testimonials: "testimonials",
+  mentors: "mentors",
+  partners: "partners",
+  contactMessages: "contact_messages",
 } as const;
 
 const FIRESTORE_DOCS = {
@@ -333,6 +426,11 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
   const [payamRepresentatives, setPayamRepresentatives] = useState<AdminPayamRepresentative[]>([]);
   const [events, setEvents] = useState<AdminEvent[]>([]);
   const [scholarships, setScholarships] = useState<AdminScholarship[]>([]);
+  const [scholars, setScholars] = useState<ScholarProfile[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [mentors, setMentors] = useState<MentorProfile[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
@@ -751,6 +849,155 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
       unsub();
     };
   }, [isAdminUser]);
+
+  // Firestore: scholar profiles – real-time sync
+  useEffect(() => {
+    const scholarsCol = collection(db, FIRESTORE_COLLECTIONS.scholars);
+
+    const unsub = onSnapshot(
+      query(scholarsCol),
+      (snap) => {
+        const loaded: ScholarProfile[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<ScholarProfile, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+
+        // Sort featured first, then by createdAt (newest first), then name.
+        loaded.sort((a, b) => {
+          if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
+          if (a.createdAt && b.createdAt && a.createdAt !== b.createdAt) {
+            return a.createdAt > b.createdAt ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        });
+
+        setScholars(loaded);
+      },
+      (err) => {
+        console.error("scholars onSnapshot failed", err);
+      }
+    );
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: testimonials – real-time sync (public read)
+  useEffect(() => {
+    const testimonialsCol = collection(db, FIRESTORE_COLLECTIONS.testimonials);
+
+    const unsub = onSnapshot(
+      query(testimonialsCol),
+      (snap) => {
+        const loaded: Testimonial[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<Testimonial, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        loaded.sort((a, b) => {
+          if (a.createdAt && b.createdAt && a.createdAt !== b.createdAt) {
+            return a.createdAt > b.createdAt ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        });
+        setTestimonials(loaded);
+      },
+      (err) => {
+        console.error("testimonials onSnapshot failed", err);
+      }
+    );
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: mentors – real-time sync (public read)
+  useEffect(() => {
+    const mentorsCol = collection(db, FIRESTORE_COLLECTIONS.mentors);
+
+    const unsub = onSnapshot(
+      query(mentorsCol),
+      (snap) => {
+        const loaded: MentorProfile[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<MentorProfile, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        loaded.sort((a, b) => {
+          if (a.createdAt && b.createdAt && a.createdAt !== b.createdAt) {
+            return a.createdAt > b.createdAt ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        });
+        setMentors(loaded);
+      },
+      (err) => {
+        console.error("mentors onSnapshot failed", err);
+      }
+    );
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: partners – real-time sync (public read)
+  useEffect(() => {
+    const partnersCol = collection(db, FIRESTORE_COLLECTIONS.partners);
+
+    const unsub = onSnapshot(
+      query(partnersCol),
+      (snap) => {
+        const loaded: Partner[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<Partner, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        loaded.sort((a, b) => {
+          if (a.createdAt && b.createdAt && a.createdAt !== b.createdAt) {
+            return a.createdAt > b.createdAt ? -1 : 1;
+          }
+          return a.name.localeCompare(b.name);
+        });
+        setPartners(loaded);
+      },
+      (err) => {
+        console.error("partners onSnapshot failed", err);
+      }
+    );
+
+    return () => {
+      unsub();
+    };
+  }, []);
+
+  // Firestore: contact messages – real-time sync
+  useEffect(() => {
+    const messagesCol = collection(db, FIRESTORE_COLLECTIONS.contactMessages);
+
+    const unsub = onSnapshot(
+      query(messagesCol, orderBy("submittedAt", "desc")),
+      (snap) => {
+        const loaded: ContactMessage[] = [];
+        snap.forEach((d) => {
+          const raw = d.data() as Omit<ContactMessage, "id">;
+          loaded.push({ id: d.id, ...raw });
+        });
+        setContactMessages(loaded);
+      },
+      (err) => {
+        console.error("contactMessages onSnapshot failed", err);
+      }
+    );
+
+    return () => {
+      unsub();
+    };
+  }, []);
 
   // Firestore: leadership (executive + payam) – real-time sync + one-time seed
   useEffect(() => {
@@ -1275,6 +1522,146 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
     void deleteDoc(doc(db, FIRESTORE_COLLECTIONS.scholarships, id));
   };
 
+  const addScholarProfile: AdminDataContextType["addScholarProfile"] = async (input) => {
+    requireAdminSession();
+    const profile: ScholarProfile = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      tagline: input.tagline,
+      photoUrl: input.photoUrl,
+      story: input.story,
+      featured: input.featured ?? true,
+      createdAt: new Date().toISOString(),
+    };
+    await setDoc(
+      doc(db, FIRESTORE_COLLECTIONS.scholars, profile.id),
+      profile as unknown as Record<string, unknown>
+    );
+  };
+
+  const updateScholarProfile: AdminDataContextType["updateScholarProfile"] = async (id, updates) => {
+    requireAdminSession();
+    const next: Record<string, unknown> = { ...(updates as unknown as Record<string, unknown>) };
+    await updateDoc(
+      doc(db, FIRESTORE_COLLECTIONS.scholars, id),
+      omitUndefined(next)
+    );
+  };
+
+  const deleteScholarProfile: AdminDataContextType["deleteScholarProfile"] = async (id) => {
+    requireAdminSession();
+    await deleteDoc(doc(db, FIRESTORE_COLLECTIONS.scholars, id));
+  };
+
+  const addTestimonial: AdminDataContextType["addTestimonial"] = async (input) => {
+    requireAdminSession();
+    const item: Testimonial = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      role: input.role,
+      quote: input.quote,
+      photoUrl: input.photoUrl,
+      createdAt: new Date().toISOString(),
+    };
+    await setDoc(
+      doc(db, FIRESTORE_COLLECTIONS.testimonials, item.id),
+      omitUndefined(item as unknown as Record<string, unknown>)
+    );
+  };
+
+  const updateTestimonial: AdminDataContextType["updateTestimonial"] = async (id, updates) => {
+    requireAdminSession();
+    await updateDoc(
+      doc(db, FIRESTORE_COLLECTIONS.testimonials, id),
+      omitUndefined(updates as unknown as Record<string, unknown>)
+    );
+  };
+
+  const deleteTestimonial: AdminDataContextType["deleteTestimonial"] = async (id) => {
+    requireAdminSession();
+    await deleteDoc(doc(db, FIRESTORE_COLLECTIONS.testimonials, id));
+  };
+
+  const addMentor = async (input: Omit<MentorProfile, "id" | "createdAt">) => {
+    requireAdminSession();
+    const mentor: MentorProfile = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      position: input.position,
+      organization: input.organization,
+      photoUrl: input.photoUrl,
+      story: input.story,
+      createdAt: new Date().toISOString(),
+    };
+    await setDoc(
+      doc(db, FIRESTORE_COLLECTIONS.mentors, mentor.id),
+      omitUndefined(mentor as unknown as Record<string, unknown>)
+    );
+  };
+
+  const updateMentor = async (id: string, updates: Partial<MentorProfile>) => {
+    requireAdminSession();
+    await updateDoc(
+      doc(db, FIRESTORE_COLLECTIONS.mentors, id),
+      omitUndefined(updates as unknown as Record<string, unknown>)
+    );
+  };
+
+  const deleteMentor = async (id: string) => {
+    requireAdminSession();
+    await deleteDoc(doc(db, FIRESTORE_COLLECTIONS.mentors, id));
+  };
+
+  const addPartner: AdminDataContextType["addPartner"] = async (input) => {
+    requireAdminSession();
+    const partner: Partner = {
+      id: crypto.randomUUID(),
+      name: input.name,
+      description: input.description,
+      logoUrl: input.logoUrl,
+      createdAt: new Date().toISOString(),
+    };
+    await setDoc(
+      doc(db, FIRESTORE_COLLECTIONS.partners, partner.id),
+      omitUndefined(partner as unknown as Record<string, unknown>)
+    );
+  };
+
+  const updatePartner: AdminDataContextType["updatePartner"] = async (id, updates) => {
+    requireAdminSession();
+    await updateDoc(
+      doc(db, FIRESTORE_COLLECTIONS.partners, id),
+      omitUndefined(updates as unknown as Record<string, unknown>)
+    );
+  };
+
+  const deletePartner: AdminDataContextType["deletePartner"] = async (id) => {
+    requireAdminSession();
+    await deleteDoc(doc(db, FIRESTORE_COLLECTIONS.partners, id));
+  };
+
+  // Contact message methods
+  const submitContactMessage: AdminDataContextType["submitContactMessage"] = async (data) => {
+    const message: ContactMessage = {
+      id: crypto.randomUUID(),
+      ...data,
+      submittedAt: new Date().toISOString(),
+      read: false,
+    };
+    await setDoc(doc(db, FIRESTORE_COLLECTIONS.contactMessages, message.id), message);
+    return message.id;
+  };
+
+  const markContactMessageRead: AdminDataContextType["markContactMessageRead"] = async (id, read) => {
+    requireAdminSession();
+    await updateDoc(doc(db, FIRESTORE_COLLECTIONS.contactMessages, id), { read });
+  };
+
+  const deleteContactMessage: AdminDataContextType["deleteContactMessage"] = async (id) => {
+    requireAdminSession();
+    await deleteDoc(doc(db, FIRESTORE_COLLECTIONS.contactMessages, id));
+  };
+
   const submitScholarshipApplication: AdminDataContextType["submitScholarshipApplication"] = async (input) => {
     const submission: ScholarshipApplicationSubmission = {
       id: crypto.randomUUID(),
@@ -1299,6 +1686,10 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         payamRepresentatives,
         events,
         scholarships,
+        scholars,
+        testimonials,
+        mentors,
+        partners,
         submitScholarshipApplication,
         addMember,
         updateMember,
@@ -1330,6 +1721,22 @@ export const AdminDataProvider = ({ children }: { children: ReactNode }) => {
         addScholarship,
         updateScholarship,
         deleteScholarship,
+        addScholarProfile,
+        updateScholarProfile,
+        deleteScholarProfile,
+        addTestimonial,
+        updateTestimonial,
+        deleteTestimonial,
+        addMentor,
+        updateMentor,
+        deleteMentor,
+        addPartner,
+        updatePartner,
+        deletePartner,
+        contactMessages,
+        submitContactMessage,
+        markContactMessageRead,
+        deleteContactMessage,
       }}
     >
       {children}

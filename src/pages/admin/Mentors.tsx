@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Plus, Edit, Trash2, Users } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,14 +49,7 @@ const AdminMentors = () => {
     const err: Record<string, string> = {};
     if (!form.name.trim()) err.name = "Name is required.";
     if (!form.position.trim()) err.position = "Position / title is required.";
-    if (!form.story.trim()) err.story = "Please add a brief or full article about this mentor’s journey.";
-    if (form.photoUrl.trim()) {
-      try {
-        new URL(form.photoUrl.trim());
-      } catch {
-        err.photoUrl = "Please enter a valid URL.";
-      }
-    }
+    if (!form.story.trim()) err.story = "Please add a brief or full article about this mentor's journey.";
     setErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -91,7 +85,7 @@ const AdminMentors = () => {
         await addMentor(data);
         toast({
           title: "Mentor Added",
-          description: "She / he will appear under “Girls Mentors and People They Look Up To”.",
+          description: "She / he will appear under \"Girls Mentors and People They Look Up To\".",
         });
       }
       reset();
@@ -160,7 +154,7 @@ const AdminMentors = () => {
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Mentor" : "Add Mentor"}</DialogTitle>
                 <DialogDescription>
-                  This content will appear on the homepage under “Girls Mentors and People They Look Up To”.
+                  This content will appear on the homepage under "Girls Mentors and People They Look Up To".
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
@@ -199,15 +193,12 @@ const AdminMentors = () => {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="m-photo">Photo URL</Label>
-                    <Input
-                      id="m-photo"
+                    <ImageUpload
+                      label="Photo"
                       value={form.photoUrl}
-                      onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
-                      placeholder="https://..."
-                      className={errors.photoUrl ? "border-destructive" : ""}
+                      onChange={(url) => setForm({ ...form, photoUrl: url })}
+                      folder="mentors"
                     />
-                    {errors.photoUrl && <p className="text-sm text-destructive">{errors.photoUrl}</p>}
                     <p className="text-xs text-muted-foreground">
                       Square or portrait photos work best. Leave blank to show initials.
                     </p>
@@ -353,4 +344,3 @@ const AdminMentors = () => {
 };
 
 export default AdminMentors;
-

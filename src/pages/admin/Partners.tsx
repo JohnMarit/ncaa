@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Building2, Plus, Edit, Trash2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,13 +47,6 @@ const AdminPartners = () => {
     const err: Record<string, string> = {};
     if (!form.name.trim()) err.name = "Name is required.";
     if (!form.description.trim()) err.description = "Description is required.";
-    if (form.logoUrl.trim()) {
-      try {
-        new URL(form.logoUrl.trim());
-      } catch {
-        err.logoUrl = "Please enter a valid URL.";
-      }
-    }
     setErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -86,7 +80,7 @@ const AdminPartners = () => {
         await addPartner(data);
         toast({
           title: "Partner Added",
-          description: "The logo will appear in the “Our Partners” section.",
+          description: "The logo will appear in the \"Our Partners\" section.",
         });
       }
       reset();
@@ -153,7 +147,7 @@ const AdminPartners = () => {
               <DialogHeader>
                 <DialogTitle>{editingId ? "Edit Partner" : "Add Partner"}</DialogTitle>
                 <DialogDescription>
-                  Partners will appear on the homepage under “Our Partners” with their logo and description.
+                  Partners will appear on the homepage under "Our Partners" with their logo and description.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit}>
@@ -170,15 +164,12 @@ const AdminPartners = () => {
                     {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="p-logo">Logo URL</Label>
-                    <Input
-                      id="p-logo"
+                    <ImageUpload
+                      label="Logo"
                       value={form.logoUrl}
-                      onChange={(e) => setForm({ ...form, logoUrl: e.target.value })}
-                      placeholder="https://..."
-                      className={errors.logoUrl ? "border-destructive" : ""}
+                      onChange={(url) => setForm({ ...form, logoUrl: url })}
+                      folder="partners"
                     />
-                    {errors.logoUrl && <p className="text-sm text-destructive">{errors.logoUrl}</p>}
                     <p className="text-xs text-muted-foreground">
                       Transparent PNG or SVG logos work best. Leave blank to show initials only.
                     </p>
@@ -218,7 +209,7 @@ const AdminPartners = () => {
           <CardHeader>
             <CardTitle>All Partners</CardTitle>
             <CardDescription>
-              Logos and descriptions here feed into the “Our Partners” section on the public site.
+              Logos and descriptions here feed into the "Our Partners" section on the public site.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -316,4 +307,3 @@ const AdminPartners = () => {
 };
 
 export default AdminPartners;
-

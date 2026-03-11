@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 import { useToast } from "@/hooks/use-toast";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import type { Testimonial } from "@/contexts/AdminDataContext";
@@ -43,13 +44,6 @@ const AdminTestimonials = () => {
         if (!form.name.trim()) err.name = "Name is required.";
         if (!form.role.trim()) err.role = "Role is required.";
         if (!form.quote.trim()) err.quote = "Quote is required.";
-        if (form.photoUrl.trim()) {
-            try {
-                new URL(form.photoUrl.trim());
-            } catch {
-                err.photoUrl = "Please enter a valid URL.";
-            }
-        }
         setErrors(err);
         return Object.keys(err).length === 0;
     };
@@ -153,15 +147,12 @@ const AdminTestimonials = () => {
                                         {errors.role && <p className="text-sm text-destructive">{errors.role}</p>}
                                     </div>
                                     <div className="grid gap-2">
-                                        <Label htmlFor="t-photo">Photo URL</Label>
-                                        <Input
-                                            id="t-photo"
-                                            placeholder="https://..."
+                                        <ImageUpload
+                                            label="Photo"
                                             value={form.photoUrl}
-                                            onChange={(e) => setForm({ ...form, photoUrl: e.target.value })}
-                                            className={errors.photoUrl ? "border-destructive" : ""}
+                                            onChange={(url) => setForm({ ...form, photoUrl: url })}
+                                            folder="testimonials"
                                         />
-                                        {errors.photoUrl && <p className="text-sm text-destructive">{errors.photoUrl}</p>}
                                         <p className="text-xs text-muted-foreground">
                                             Square photos work best. Leave blank for initials avatar.
                                         </p>

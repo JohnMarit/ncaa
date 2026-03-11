@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Users, Sparkles } from "lucide-react";
 import { useAdminData } from "@/contexts/AdminDataContext";
 import type { MentorProfile } from "@/contexts/AdminDataContext";
@@ -40,6 +41,7 @@ const FALLBACK_MENTORS: MentorProfile[] = [
 export function MentorsSection() {
   const { mentors } = useAdminData();
   const items = mentors.length > 0 ? mentors : FALLBACK_MENTORS;
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <section className="py-16 md:py-20 bg-muted/40">
@@ -61,52 +63,60 @@ export function MentorsSection() {
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((mentor) => {
-            const firstParagraph = (mentor.story ?? "").split(/\n{2,}/)[0] ?? "";
+            const story = mentor.story ?? "";
+            const firstParagraph = story.split(/\n{2,}/)[0] ?? "";
             const preview = firstParagraph.slice(0, 160);
-            const hasMore = (mentor.story ?? "").length > preview.length;
+            const hasMore = story.length > preview.length;
+            const isExpanded = expandedId === mentor.id;
 
             return (
-            <div
-              key={mentor.name}
-              className="flex h-full flex-col rounded-xl border border-border/70 bg-card/80 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
-            >
-              <div className="mb-3 flex items-center gap-3">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary overflow-hidden">
-                  {mentor.photoUrl ? (
-                    <img
-                      src={mentor.photoUrl}
-                      alt={mentor.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-xs font-semibold">
-                      {mentor.name
-                        .split(" ")
-                        .map((p) => p[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </span>
-                  )}
+              <button
+                key={mentor.name}
+                type="button"
+                onClick={() =>
+                  setExpandedId((current) =>
+                    current === mentor.id ? null : mentor.id,
+                  )
+                }
+                className="flex h-full flex-col rounded-xl border border-border/70 bg-card/80 p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary">
+                    {mentor.photoUrl ? (
+                      <img
+                        src={mentor.photoUrl}
+                        alt={mentor.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-xs font-semibold">
+                        {mentor.name
+                          .split(" ")
+                          .map((p) => p[0])
+                          .join("")
+                          .slice(0, 2)
+                          .toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-sm font-semibold text-foreground">
+                      {mentor.name}
+                    </h3>
+                    <p className="truncate text-[11px] font-medium text-primary/80">
+                      {mentor.position}
+                      {mentor.organization ? ` · ${mentor.organization}` : ""}
+                    </p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-sm font-semibold text-foreground truncate">
-                    {mentor.name}
-                  </h3>
-                  <p className="text-[11px] font-medium text-primary/80 truncate">
-                    {mentor.position}
-                    {mentor.organization ? ` · ${mentor.organization}` : ""}
+                {(preview || story) && (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    {isExpanded ? story : preview}
+                    {!isExpanded && hasMore && "…"}
                   </p>
-                </div>
-              </div>
-              {preview && (
-                <p className="text-xs leading-relaxed text-muted-foreground">
-                  {preview}
-                  {hasMore && "…"}
-                </p>
-              )}
-            </div>
-          );
+                )}
+              </button>
+            );
           })}
         </div>
       </div>

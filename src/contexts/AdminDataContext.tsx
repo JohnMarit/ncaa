@@ -246,7 +246,6 @@ interface AdminDataContextType {
   mentors: MentorProfile[];
   partners: Partner[];
   contactMessages: ContactMessage[];
-  mentors: MentorProfile[];
   submitScholarshipApplication: (input: Omit<ScholarshipApplicationSubmission, "id" | "submittedAt">) => Promise<void>;
   addMember: (member: Omit<Member, "id" | "status" | "appliedDate" | "paymentStatus">) => void;
   updateMember: (id: string, updates: Partial<Omit<Member, "id" | "appliedDate">>) => void;

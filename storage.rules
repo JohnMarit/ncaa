@@ -1,1 +1,42 @@
+rules_version = '2';
 
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Testimonials images - admin upload, public read
+    match /testimonials/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Mentors images - admin upload, public read
+    match /mentors/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Partners logos - admin upload, public read
+    match /partners/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Scholars images - admin upload, public read
+    match /scholars/{imageId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

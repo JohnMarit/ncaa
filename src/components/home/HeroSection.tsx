@@ -95,8 +95,8 @@ export function HeroSection() {
           {/* CTA Buttons */}
           <div ref={buttonContainerRef} className="flex flex-row items-center justify-center gap-3 sm:gap-5 opacity-0 animate-fade-up stagger-3 flex-wrap px-2">
             <Button variant="hero" size="lg" className="text-sm sm:text-base h-11 sm:h-14 px-3 sm:px-10 shrink basis-auto min-w-fit" asChild>
-              <Link to="/register">
-                Become a Member
+              <Link to="/partner">
+                Become a Partner
               </Link>
             </Button>
             <Button variant="heroOutline" size="lg" className="text-sm sm:text-base h-11 sm:h-14 px-3 sm:px-10 shrink basis-auto min-w-fit" asChild>
@@ -112,13 +112,13 @@ export function HeroSection() {
                 className="font-heading text-lg sm:text-2xl font-bold text-white md:text-3xl"
                 style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
               >
-                2,500+
+                35
               </p>
               <p
                 className="text-[10px] sm:text-xs text-white/90 md:text-sm"
                 style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
               >
-                Active Members
+                Empowered Girls
               </p>
             </div>
             <div className="rounded-xl bg-white/20 p-2 sm:p-4 backdrop-blur-sm md:p-6 border border-white/30 min-w-0">
@@ -127,13 +127,13 @@ export function HeroSection() {
                 className="font-heading text-lg sm:text-2xl font-bold text-white md:text-3xl"
                 style={{ textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}
               >
-                6
+                1,000
               </p>
               <p
                 className="text-[10px] sm:text-xs text-white/90 md:text-sm"
                 style={{ textShadow: '0 1px 3px rgba(0,0,0,0.5)' }}
               >
-                Payam Chapters
+                Target by 2027
               </p>
             </div>
             <div className="rounded-xl bg-white/20 p-2 sm:p-4 backdrop-blur-sm md:p-6 border border-white/30 min-w-0">

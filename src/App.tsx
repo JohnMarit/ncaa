@@ -30,6 +30,7 @@ import DonationPayment from "./pages/DonationPayment";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import Partner from "./pages/Partner";
 
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminMembers from "./pages/admin/Members";
@@ -88,6 +89,7 @@ const App = () => (
               <Route path="/donate/payment" element={<DonationPayment />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/partner" element={<Partner />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
 
               {/* Admin Routes - Only accessible through /admin */}

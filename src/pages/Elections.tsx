@@ -12,16 +12,9 @@ const pastElections = [
     {
         id: 2,
         title: "Executive Committee Elections 2025",
-        date: "January 2025",
+        date: "July 2025",
         turnout: "92%",
         totalVotes: 2300,
-    },
-    {
-        id: 3,
-        title: "IEC Committee Elections 2025",
-        date: "March 2024",
-        turnout: "88%",
-        totalVotes: 2100,
     },
 ];
 

@@ -256,7 +256,7 @@ const Directory = () => {
                                     <a href="/login">Sign In to Portal</a>
                                 </Button>
                                 <Button variant="outline" asChild>
-                                    <a href="/membership">Become a Member</a>
+                                    <a href="/partner">Become a Partner</a>
                                 </Button>
                             </div>
                         </div>
